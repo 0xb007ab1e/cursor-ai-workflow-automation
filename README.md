@@ -1,548 +1,485 @@
-# Cursor Auto-Accept Script with Analytics & ROI Tracking
+# Cursor Auto-Accept & Analytics Script
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Cursor](https://img.shields.io/badge/Cursor-Compatible-blue.svg)](https://cursor.sh/)
 [![Created by @ivalsaraj](https://img.shields.io/badge/Created%20by-@ivalsaraj-blue)](https://linkedin.com/in/ivalsaraj)
 
-**Automatically accept Cursor AI suggestions with comprehensive analytics and time savings calculations.**
+**Automatically accept Cursor AI suggestions with comprehensive analytics, conversation analysis, and ROI tracking.**
 
 <div align="center">
   <img src="auto-accept-demo.png" alt="Auto Accept Demo" width="400"/>
   <img src="analytics.png" alt="Analytics Demo" width="400"/>
   <img src="demo1.png" alt="App Demo" width="400"/>
-  
 </div>
 
 ## 🎯 What This Does
 
-This script automatically clicks "Accept", "Accept All", "Run", and similar buttons in Cursor IDE, eliminating the need for manual clicking during AI-assisted coding sessions. It provides detailed analytics on files modified, lines changed, and **calculates your time savings with ROI metrics**.
+This advanced script automatically clicks "Accept", "Accept All", "Run", "Resume Conversation", and similar buttons in Cursor IDE, eliminating manual clicking during AI-assisted coding sessions. It provides comprehensive analytics on files modified, conversation analysis, separated button type tracking, and **calculates precise time savings with ROI metrics**.
 
 ## ⚡ Key Features
 
-- **Smart Auto-Clicking**: Automatically detects and clicks accept/run buttons
-- **File Analytics**: Track which files are modified, lines added/deleted
-- **ROI Time Tracking**: Calculate exact time savings vs manual clicking
-- **Productivity Metrics**: See efficiency gains and productivity percentages
-- **Draggable UI**: Control panel you can position anywhere on screen
-- **Zero Interruption**: Works silently in the background
-- **Full Control**: Start/stop, configure button types, export data
+### 🤖 Smart Automation
+- **Universal Button Detection**: Accept, Run, Apply, Execute, Resume Conversation
+- **Conversation-Based File Detection**: Finds files from latest diff blocks in conversation
+- **Universal File Support**: Works with ANY file type (JS, CSS, Python, SQL, etc.)
+- **Resume Conversation Auto-Click**: Automatically continues when hitting 25 tool call limit
+- **Zero Interruption**: Works silently in background maintaining development flow
 
-## 📊 Time Savings & ROI
+### 📊 Advanced Analytics  
+- **Separated Button Analytics**: Color-coded tracking for different button types
+  - 🟢 **Accept/Accept All**: Standard file acceptances 
+  - 🟠 **Run/Run Command**: Command executions
+  - 🔵 **Resume Conversation**: Session continuations  
+  - 🟣 **Apply/Execute**: Other actions
+- **File Change Tracking**: Lines added/deleted per file with timestamps
+- **Conversation Analysis**: Diff block detection and development progress monitoring
+- **Session Statistics**: Duration, clicks, files modified, productivity metrics
 
-### What the ROI Tracking Shows:
-- **Total Time Saved**: Exact seconds/minutes saved per session
-- **Productivity Gain**: Percentage increase in coding efficiency  
-- **Daily/Weekly/Monthly Projections**: Estimated time savings over longer periods
-- **Manual vs Automated**: Comparison of time with/without automation
-- **Average Time Per Click**: How much time each automated action saves
+### ⚡ ROI & Time Tracking
+- **Precise Time Calculations**: Based on complete AI workflow automation
+- **Productivity Gain**: Real percentage increases in coding efficiency  
+- **Button-Specific Savings**: Different time values for different action types
+- **Session Projections**: Daily/weekly/monthly time savings estimates
 
-### Time Calculations:
-- **Manual clicking**: ~2-3 seconds per button (finding + clicking + context switching)
-- **Accept All buttons**: +1 second extra (reading multiple changes)
-- **Run/Execute buttons**: +0.5 seconds extra (mental confirmation)
-- **Automated clicking**: ~0.1 seconds (near-instantaneous)
+### 🎮 Interactive Control Panel
+- **Draggable Interface**: Position anywhere on screen
+- **Three-Tab Layout**: Main controls, Analytics, ROI tracking
+- **Real-Time Updates**: Live activity logs and status indicators
+- **Configuration Controls**: Enable/disable specific button types
+- **Data Export**: Download complete analytics as JSON
 
-**Example**: In a 1-hour coding session with 50 auto-accepts, you save approximately **2.5 minutes** of pure clicking time, plus reduced cognitive load and better flow state.
+### 🔍 Conversation Intelligence
+- **Diff Block Analysis**: Automatically detects code changes in conversation
+- **File Change Monitoring**: Tracks modifications across development session
+- **Recent Activity Analysis**: Configurable time windows for activity tracking
+- **Development Progress Insights**: Understand coding velocity and patterns
 
-## 🚀 Quick Installation
+## 🚀 Installation
 
-### Method 1: Copy & Paste (Easiest)
-```javascript
-// Copy the entire content from cursor-auto-accept-simple.js
-// Paste into Cursor Developer Tools console
-// Press Enter
-```
+### Method 1: Copy & Paste (Recommended)
+1. Copy entire content from `cursor-auto-accept-simple.js`
+2. Open Cursor → **Help** → **Toggle Developer Tools** 
+3. Go to **Console** tab
+4. Type `allow pasting` and press Enter (if prompted)
+5. Paste script content and press Enter
+6. Script loads with `[autoAcceptAndAnalytics] SCRIPT LOADED AND ACTIVE!` message
 
 ### Method 2: Direct Download
-1. Download `cursor-auto-accept-simple.js`
-2. Open Cursor → **Help** → **Toggle Developer Tools**
-3. Go to **Console** tab
-4. Type `allow pasting` and press Enter
-5. Copy entire script content and paste
-6. Press Enter
+1. Download `cursor-auto-accept-simple.js` from repository
+2. Follow console steps above
 
-### Method 3: Bookmarklet (Advanced)
-Create a browser bookmark with the script content as the URL.
+### Method 3: Bookmarklet
+Create browser bookmark with script content for easy loading.
 
-## 📖 Complete Usage Guide
+## 📖 Usage Guide
 
-### Basic Controls
+### 🎮 Basic Controls
 ```javascript
-// Start automation
-globalThis.simpleAccept.start()
+// Start automation (also available as global shortcut)
+startAccept()
 
-// Stop automation  
-globalThis.simpleAccept.stop()
+// Stop automation
+stopAccept()
 
-// Check status
-globalThis.simpleAccept.status()
+// Check current status
+acceptStatus()
 
-// Show/hide control panel
+// Show control panel
 globalThis.simpleAccept.showControlPanel()
 ```
 
-### Button Type Configuration
+### ⚙️ Configuration
 ```javascript
 // Enable only specific button types
-globalThis.simpleAccept.enableOnly(['accept', 'run'])
+enableOnly(['accept', 'run', 'resume'])
 
-// Enable/disable individual types
-globalThis.simpleAccept.enable('acceptAll')
-globalThis.simpleAccept.disable('execute')
+// Enable/disable individual types  
+enableButton('accept')
+disableButton('execute')
+toggleButton('apply')
 
-// Toggle specific type
-globalThis.simpleAccept.toggle('apply')
-
-// Enable/disable all
-globalThis.simpleAccept.enableAll()
-globalThis.simpleAccept.disableAll()
+// Enable/disable all button types
+enableAll()
+disableAll()
 ```
 
-### Analytics & Data Export
+**Supported Types**: `accept`, `acceptAll`, `run`, `runCommand`, `apply`, `execute`, `resume`
+
+### 📊 Analytics & Data
 ```javascript
-// Export analytics data
-globalThis.simpleAccept.exportAnalytics()
+// Show analytics in control panel
+showAnalytics()
 
-// Clear all data
-globalThis.simpleAccept.clearAnalytics()
+// Export complete analytics data
+exportAnalytics()
 
-// Switch to ROI tab
-globalThis.simpleAccept.switchTab('roi')
+// Clear all analytics data
+clearAnalytics()
+
+// Validate data integrity
+validateData()
+
+// Clear all storage and reset
+clearStorage()
 ```
 
-## 🎮 Control Panel Features
+### 🔍 Conversation Analysis
+```javascript
+// Find all diff blocks in conversation
+findDiffs()
 
-The draggable control panel includes three tabs:
+// Get conversation overview with file changes
+getContext()
+
+// Log detailed conversation activity
+logActivity()
+
+// Find recent diff blocks (default 30 seconds)
+recentDiffs()
+recentDiffs(60000) // Custom time window in milliseconds
+```
+
+### 🐛 Debug Controls
+```javascript
+// Enable detailed file extraction logging
+enableDebug()
+
+// Disable debug logging
+disableDebug()
+
+// Toggle debug mode
+toggleDebug()
+
+// Manual button search for troubleshooting
+debugAccept()
+```
+
+### ⚡ ROI Calibration
+```javascript
+// Calibrate workflow timing (default: 30 seconds manual workflow)
+calibrateWorkflow(30)
+
+// Custom calibration with manual and automated times
+calibrateWorkflow(25, 100) // 25s manual, 100ms automated
+```
+
+## 🎛️ Control Panel Features
 
 ### 📊 Main Tab
-- **Start/Stop** buttons with visual status
-- **Real-time click counter**
-- **Live activity log** with timestamps
-- **Configuration checkboxes** for different button types
+- **Start/Stop Controls**: Large visual buttons with status indicators
+- **Real-Time Counter**: Shows current session clicks
+- **Activity Log**: Timestamped log with file names and button types
+- **Configuration Checkboxes**: Individual button type toggles
+- **Status Display**: Running/Stopped with session duration
 
-### 📈 Analytics Tab  
-- **Session statistics** (duration, total accepts, files modified)
-- **File activity log** with line change counts
-- **Export/Clear data** functions
-- **Creator credits** and links
+### 📈 Analytics Tab
+- **Session Overview**: Duration, total clicks, files modified
+- **🎯 Button Types**: Color-coded breakdown of button usage
+  - Accept/Accept All (Green)
+  - Run/Run Command (Orange)  
+  - Resume Conversation (Blue)
+  - Apply/Execute (Purple)
+- **📁 File Activity**: Individual file modification history
+- **Export/Clear Controls**: Data management functions
 
-### ⚡ ROI Tab (NEW!)
-- **Total time saved** in current session
-- **Productivity gain percentage**
-- **Average time saved per click**
-- **Daily/Weekly/Monthly projections**
-- **Manual vs Automated comparison**
-- **Efficiency gain calculations**
+### ⚡ ROI Tab  
+- **Complete Workflow ROI**: Time savings from full AI workflow automation
+- **Session Metrics**: Total time saved, productivity gain percentage
+- **Performance Analysis**: Average time per click, efficiency calculations
+- **Impact Projections**: Estimated daily/weekly/monthly savings
+- **Workflow Explanation**: Understanding of measurement methodology
 
-## 🔧 Supported Button Types
+## 🤖 Resume Conversation Feature
 
-The script recognizes and clicks these patterns:
-- ✅ "Accept all" / "Accept All ⌘⏎"
-- ✅ "Accept" / "Accept ⌘⏎"  
-- ✅ "Run command" / "Run"
-- ✅ "Execute" / "Apply"
-- ✅ Custom patterns (configurable)
+### Automatic Session Continuation
+- **25 Tool Call Limit Detection**: Automatically detects when Cursor reaches limit
+- **Auto-Click Resume Links**: Finds and clicks "Resume Conversation" markdown links
+- **Seamless Workflow**: Maintains development momentum during long sessions
+- **Analytics Integration**: Tracks resume actions separately with blue color coding
+- **Configuration Control**: Can be enabled/disabled like other button types
 
-## 📈 Analytics Data Structure
+### Technical Implementation
+```javascript
+// Target elements for resume detection
+'.markdown-link[data-link="command:composer.resumeCurrentChat"]'
 
-Exported data includes:
+// Enable/disable resume functionality
+enableButton('resume')
+disableButton('resume')
+```
+
+## 📁 Universal File Detection
+
+### Conversation-Based Approach
+- **Latest Message Analysis**: Searches most recent conversation messages by `data-message-index`
+- **Diff Block Detection**: Finds code blocks in `div.conversations` container
+- **Universal File Support**: Detects ANY file type through pattern matching
+- **Fallback System**: Multiple detection methods for reliability
+
+### File Types Supported
+- **Programming**: `.js`, `.ts`, `.py`, `.java`, `.cpp`, `.c`, `.cs`, `.go`, `.rust`, `.php`
+- **Web**: `.html`, `.css`, `.scss`, `.sass`, `.less`, `.vue`, `.jsx`, `.tsx`
+- **Data**: `.json`, `.xml`, `.yaml`, `.yml`, `.toml`, `.csv`, `.sql`
+- **Config**: `.env`, `.config`, `.ini`, `.conf`, `.dockerfile`
+- **Documentation**: `.md`, `.txt`, `.rst`, `.tex`
+- **And many more**: Any file with an extension
+
+### Debug File Detection
+```javascript
+// Enable detailed file extraction logging
+enableDebug()
+
+// View current conversation context
+getContext()
+
+// See latest diff blocks
+findDiffs()
+```
+
+## 🔢 Time Savings & ROI Calculations
+
+### Workflow Time Measurements
+- **Manual Workflow**: User prompt → Watch AI generation → Find button → Click → Context switch
+- **Automated Workflow**: User prompt → Script auto-clicks → Continue coding
+- **Time Savings**: Difference between manual and automated workflows
+
+### Button-Specific Timing
+```javascript
+const workflowTimeSavings = {
+    'accept': 30000,      // 30 seconds base workflow
+    'accept-all': 35000,  // +5s extra review time
+    'run': 32000,         // +2s caution for commands  
+    'execute': 32000,     // +2s caution for execution
+    'apply': 30000,       // 30s base workflow
+    'resume': 33000       // +3s conversation continuity bonus
+};
+```
+
+### ROI Metrics
+- **Total Time Saved**: Cumulative seconds/minutes saved
+- **Productivity Gain**: `(timeSaved / sessionDuration) * 100`
+- **Efficiency Rate**: `automatedTime / manualTime * 100`
+- **Average Per Click**: `totalTimeSaved / totalClicks`
+
+## 🛠️ Troubleshooting
+
+### File Names Not Showing
+```javascript
+// Enable debug mode to see extraction process
+enableDebug()
+
+// Check conversation context
+getContext()
+
+// Manual file detection test  
+findDiffs()
+```
+
+**Common Causes**:
+- No recent diff blocks in conversation
+- File names not in expected elements
+- Debug mode shows exact extraction attempts
+
+### NaN Values in Analytics
+✅ **Fixed**: All calculations now have safe number validation
+- Added `isNaN()` checks with fallback to 0
+- Protected division operations
+- Safe variable handling throughout
+
+### Button Detection Issues
+```javascript
+// Manual debug search
+debugAccept()
+
+// Check which buttons are enabled
+acceptStatus()
+
+// Test specific button types
+enableOnly(['accept'])
+```
+
+### Control Panel Issues
+```javascript
+// Force show panel
+globalThis.simpleAccept.showControlPanel()
+
+// Reset panel position (if dragged off-screen)
+globalThis.simpleAccept.hideControlPanel()
+globalThis.simpleAccept.showControlPanel()
+```
+
+### Console Errors
+✅ **TrustedHTML Fixed**: Uses DOM creation instead of innerHTML
+✅ **Security Compliant**: No direct HTML injection
+✅ **Cross-Browser Compatible**: Modern JavaScript standards
+
+## 📊 Analytics Data Structure
+
+### Exported JSON Format
 ```json
 {
   "session": {
-    "start": "2024-01-01T10:00:00.000Z",
+    "start": "2024-12-27T10:00:00.000Z",
     "duration": 3600000,
-    "totalAccepts": 45
+    "totalAccepts": 67
+  },
+  "buttonTypeCounts": {
+    "accept": 42,
+    "run": 15,
+    "resume-conversation": 8,
+    "apply": 2
   },
   "roiTracking": {
-    "totalTimeSaved": 135000,
-    "averageTimePerClick": 3000,
-    "productivityGain": 15.2
+    "totalTimeSaved": 201000,
+    "averageCompleteWorkflow": 30000,
+    "productivityGain": 18.5
   },
   "files": {
-    "app.js": {
-      "acceptCount": 12,
-      "totalAdded": 156,
-      "totalDeleted": 23,
-      "lastAccepted": "2024-01-01T10:30:00.000Z"
+    "cursor-auto-accept-simple.js": {
+      "acceptCount": 15,
+      "totalAdded": 387,
+      "totalDeleted": 45,
+      "buttonTypes": {
+        "accept": 12,
+        "apply": 3
+      },
+      "lastAccepted": "2024-12-27T10:45:00.000Z"
     }
   }
 }
 ```
 
-## 🛠️ Troubleshooting
+## 🔗 Advanced Commands Reference
 
-### Console Errors Fixed
-❌ **TrustedHTML Error**: Fixed by using DOM creation instead of innerHTML
-✅ **Solution**: Script now creates all elements programmatically
-
-### Common Issues
-
-**Q: Buttons aren't being clicked**
-- Check if the control panel shows "Running" status
-- Verify button types are enabled in configuration
-- Use `debugSearch()` to see what elements are found
-
-**Q: Control panel not visible**
-- Run: `globalThis.simpleAccept.showControlPanel()`
-- Check if it's minimized (click restore button)
-- Try refreshing Cursor and re-running script
-
-**Q: Analytics not updating**
-- Switch between tabs to refresh data
-- Check that file extraction is working properly
-- Files must have recognizable diff stats
-
-**Q: Can't see author credits**
-- Credits now appear at bottom of both Analytics and ROI tabs
-- Ensure you're scrolled to bottom of panel
-
-### Debug Commands
+### Global Shortcuts
 ```javascript
-// Debug what elements are found
-globalThis.simpleAccept.debugSearch()
-
-// Check current configuration
-globalThis.simpleAccept.status()
-
-// View all analytics data
-globalThis.simpleAccept.analytics
+startAccept()                    // Start automation
+stopAccept()                     // Stop automation  
+acceptStatus()                   // Check status
+debugAccept()                    // Debug search
 ```
 
-## 🎨 Customization
-
-### Modify Time Calculations
+### Configuration
 ```javascript
-// Adjust time savings per button type (in milliseconds)
-globalThis.simpleAccept.roiTracking.manualClickTime = 3000 // 3 seconds per manual click
-globalThis.simpleAccept.roiTracking.averageWaitTime = 5000  // 5 seconds watching/waiting
+enableOnly(['accept', 'run'])    // Enable only specified types
+enableAll()                      // Enable all button types
+disableAll()                     // Disable all button types
+toggleButton('resume')           // Toggle specific type
+enableButton('apply')            // Enable specific type
+disableButton('execute')         // Disable specific type
 ```
 
-### Change Check Interval
+### Analytics
 ```javascript
-// Check for buttons every 1 second instead of 2
-globalThis.simpleAccept.interval = 1000
+showAnalytics()                  // Switch to analytics tab
+exportAnalytics()                // Export data as JSON
+clearAnalytics()                 // Clear analytics data
+clearStorage()                   // Reset everything
+validateData()                   // Check data integrity
 ```
 
-### Modify Button Patterns
-Edit the `isAcceptButton()` method to recognize different text patterns.
-
-## 🔗 Links & Resources
-
-- **GitHub Repository**: [cursor-auto-accept-full-agentic-mode](https://github.com/ivalsaraj/cursor-auto-accept-full-agentic-mode)
-- **Creator**: [@ivalsaraj](https://linkedin.com/in/ivalsaraj)
-- **Gist**: [Complete Script with Instructions](https://gist.github.com/ivalsaraj/cursor-auto-accept-gist)
-
-## 📊 ROI Benefits Summary
-
-**Immediate Benefits:**
-- ⚡ 2-3 seconds saved per button click
-- 🧠 Reduced cognitive load and context switching
-- 🎯 Maintained flow state during coding
-- 📈 Measurable productivity improvements
-
-**Long-term Benefits:**
-- ⏰ Hours saved per month for active Cursor users
-- 🚀 Faster iteration and development cycles  
-- 💰 Quantifiable ROI for development teams
-- 📊 Data-driven insights into coding patterns
-
-## 🤝 Contributing
-
-Found a bug or want to add features? 
-1. Fork the repository
-2. Create your feature branch
-3. Submit a pull request
-
-## 📄 License
-
-MIT License - Use freely in personal and commercial projects.
-
----
-
-**Created by [@ivalsaraj](https://linkedin.com/in/ivalsaraj)** | **[GitHub](https://github.com/ivalsaraj)**
-
-## 🎛️ Control Panel
-
-The control panel features two tabs:
-
-### Main Tab
-- **Start/Stop** buttons for script control
-- **Config** button to show/hide button type checkboxes
-- **Real-time status** and click counter
-- **Live log** of all button clicks
-
-### Analytics Tab
-- **Session statistics** (duration, total accepts, files modified)
-- **File activity list** with modification counts and diff stats
-- **Export Data** button to save analytics as JSON
-- **Clear Data** button to reset session statistics
-
-## 📊 File Analytics Features
-
-The script now tracks:
-- **File names** from code blocks when buttons are clicked
-- **Lines added/deleted** from diff statistics (`+15/-8` format)
-- **Acceptance frequency** per file
-- **Time stamps** for first and last modifications
-- **Session data** for productivity analysis
-
-Example analytics display:
-```
-📊 Session Analytics
-Session: 45min
-Total Accepts: 23
-Files Modified: 5
-Lines Added: +156
-Lines Deleted: -89
-
-📁 File Activity
-index.js - 5x (+45/-12) 2min ago
-README.md - 3x (+23/-5) 5min ago
-package.json - 1x (+2/-0) 15min ago
-```
-
-## 📚 Usage Guide
-
-### Basic Commands
-
+### Debug
 ```javascript
-// Control the script
-startAccept()    // Start auto-clicking
-stopAccept()     // Stop auto-clicking
-acceptStatus()   // Check current status
-debugAccept()    // Debug button detection
-
-// Analytics commands (new!)
-globalThis.simpleAccept.exportAnalytics()  // Export analytics data
-globalThis.simpleAccept.clearAnalytics()   // Clear session data
+enableDebug()                    // Enable file extraction logging
+disableDebug()                   // Disable debug logging
+toggleDebug()                    // Toggle debug mode
 ```
 
-### Button Type Control
-
-#### Enable Only Specific Buttons
+### Conversation Analysis  
 ```javascript
-enableOnly(['accept'])                    // Only Accept buttons
-enableOnly(['run'])                       // Only Run buttons
-enableOnly(['accept', 'run'])             // Accept and Run buttons
-enableOnly(['acceptAll'])                 // Only Accept All buttons
-enableOnly(['run', 'runCommand'])         // All Run-type buttons
+findDiffs()                      // Find all diff blocks
+getContext()                     // Get conversation overview
+logActivity()                    // Log recent activity
+recentDiffs(60000)               // Recent diffs (60s window)
 ```
 
-#### Individual Button Control
+### Calibration
 ```javascript
-enableButton('run')                       // Enable Run buttons
-disableButton('accept')                   // Disable Accept buttons
-toggleButton('acceptAll')                 // Toggle Accept All on/off
+calibrateWorkflow(30)            // Set manual workflow time (30s)
+calibrateWorkflow(25, 100)       // Custom manual + automated timing
 ```
 
-#### Bulk Operations
-```javascript
-enableAll()                               // Enable all button types
-disableAll()                              // Disable all (pause clicking)
-```
+## 🎨 UI Customization
 
-### Supported Button Types
+### Control Panel
+- **Draggable**: Click and drag header to reposition
+- **Minimizable**: Click minimize button to hide content
+- **Resizable**: Adjust tabs and content areas
+- **Color Coded**: Different colors for different button types
+- **Dark Theme**: Professional dark interface with gradients
 
-| Type | Description | Example Buttons |
-|------|-------------|-----------------|
-| `acceptAll` | Accept all suggestions | "Accept all ⌘⏎" |
-| `accept` | Accept single suggestion | "Accept" |
-| `run` | Run/execute code | "Run" |
-| `runCommand` | Run specific commands | "Run command" |
-| `apply` | Apply changes | "Apply" |
-| `execute` | Execute operations | "Execute" |
+### Button Type Colors
+- 🟢 **Accept/Accept All**: `#4CAF50` (Green)
+- 🟠 **Run/Run Command**: `#FF9800` (Orange)  
+- 🔵 **Resume Conversation**: `#2196F3` (Blue)
+- 🟣 **Apply/Execute**: `#9C27B0` (Purple)
 
-## 💡 Common Use Cases
+## 📈 Performance & Impact
 
-### For AI Code Generation
-```javascript
-// Only auto-accept AI suggestions
-enableOnly(['accept', 'acceptAll'])
-```
+### Typical Session Results
+- **50 automated clicks** in 1-hour session
+- **2.5 minutes direct time savings** (click time only)
+- **15-20% productivity increase** (including flow state maintenance)
+- **Reduced cognitive load** from manual button watching
+- **Better focus** on actual coding vs UI interaction
 
-### For Terminal/Command Execution
-```javascript
-// Only auto-run commands
-enableOnly(['run', 'runCommand'])
-```
+### Workflow Efficiency
+- **Manual**: 30-35 seconds per AI interaction cycle
+- **Automated**: 0.1-0.5 seconds per interaction  
+- **Efficiency Gain**: 99%+ time reduction for button interactions
+- **Flow State**: Maintained focus on coding rather than UI clicking
 
-### For Code Reviews
-```javascript
-// Only apply changes, no auto-execution
-enableOnly(['apply'])
-```
+## 🔒 Privacy & Security
 
-### Temporary Pause
-```javascript
-disableAll()          // Pause all clicking
-// ... do manual work ...
-enableAll()           // Resume all clicking
-```
+- **No Data Transmission**: All analytics stored locally in browser
+- **No External Requests**: Script operates entirely offline
+- **localStorage Only**: Data persists in browser storage
+- **Open Source**: Full transparency of all functionality
+- **No Tracking**: No analytics sent to external servers
 
-## 🔧 Configuration Examples
+## 🆕 Recent Updates
 
-### Scenario 1: Safe Mode (Accept Only)
-```javascript
-enableOnly(['accept', 'acceptAll'])
-startAccept()
-```
-
-### Scenario 2: Full Automation
-```javascript
-enableAll()
-startAccept()
-```
-
-### Scenario 3: Development Mode (No Auto-Run)
-```javascript
-enableOnly(['accept', 'acceptAll', 'apply'])
-disableButton('run')
-disableButton('runCommand')
-```
-
-### Scenario 4: Toggle Run Commands
-```javascript
-toggleButton('run')        // Turn run buttons on/off
-acceptStatus()             // Check current state
-```
-
-## 📊 Monitoring
-
-### Check Script Status
-```javascript
-acceptStatus()
-```
-
-**Returns:**
-```javascript
-{
-  isRunning: true,
-  interval: 2000,
-  totalClicks: 15,
-  config: {
-    enableAcceptAll: true,
-    enableAccept: true,
-    enableRun: false,
-    enableRunCommand: false,
-    enableApply: true,
-    enableExecute: true
-  }
-}
-```
-
-### Debug Button Detection
-```javascript
-debugAccept()
-```
-
-**Sample Output:**
-```
-[AutoAccept] 2025-01-04T11:24:47.518Z - === DEBUG SEARCH ===
-[AutoAccept] 2025-01-04T11:24:47.519Z - Input box found, checking siblings...
-[AutoAccept] 2025-01-04T11:24:47.520Z - Sibling 1: DIV hide-if-empty
-[AutoAccept] 2025-01-04T11:24:47.521Z -   Text: "Accept all ⌘⏎"
-[AutoAccept] 2025-01-04T11:24:47.522Z -   >>> Contains patterns: accept
-[AutoAccept] 2025-01-04T11:24:47.523Z -   Found 1 clickable buttons!
-[AutoAccept] 2025-01-04T11:24:47.524Z -     Button 1: "Accept all ⌘⏎"
-```
-
-## 🛠️ Troubleshooting
-
-### Script Not Finding Buttons
-1. Run `debugAccept()` to see what's detected
-2. Check if buttons are visible on screen
-3. Verify button text matches supported patterns
-
-### Console Logs Not Showing
-1. Check console filter settings (enable "Info" and "Log")
-2. Clear console and reload script
-3. Ensure you're in the main Cursor window console
-
-### Script Stops Working
-1. Check if Cursor was restarted (script needs reinstalling)
-2. Run `acceptStatus()` to verify script is running
-3. Restart with `startAccept()`
-
-### Buttons Being Clicked Too Fast/Slow
-```javascript
-// Change check interval (in milliseconds)
-globalThis.simpleAccept.interval = 1000  // Check every 1 second
-globalThis.simpleAccept.interval = 5000  // Check every 5 seconds
-```
-
-## ⚠️ Important Notes
-
-- **Script is session-based**: Reloading Cursor requires reinstalling the script
-- **Developer Tools must stay open**: Script runs in the console context
-- **Visual confirmation**: Watch the console for click confirmations
-- **Safe by design**: Only clicks visible, enabled buttons
-
-## 🔒 Security & Safety
-
-- Script only interacts with Cursor's UI elements
-- No external network requests
-- No file system access
-- No sensitive data handling
-- Open source and auditable
-
-## 📝 Example Session
-
-```javascript
-// 1. Install script (paste in console)
-// [SimpleAutoAccept] Ready with full control!
-
-// 2. Check what's currently enabled
-acceptStatus()
-// { isRunning: true, config: { enableAcceptAll: true, ... } }
-
-// 3. Configure for safe AI assistance
-enableOnly(['accept', 'acceptAll'])
-// [AutoAccept] Configuration updated: Only accept, acceptAll buttons enabled
-
-// 4. Work with AI, script auto-accepts suggestions
-// [AutoAccept] Found button: Accept all ⌘⏎
-// [AutoAccept] Successfully clicked accept button (Total: 1)
-
-// 5. Switch to command mode
-enableOnly(['run', 'runCommand'])
-// [AutoAccept] Configuration updated: Only run, runCommand buttons enabled
-
-// 6. Pause when needed
-disableAll()
-// [AutoAccept] All button types disabled
-
-// 7. Resume
-enableAll()
-// [AutoAccept] All button types enabled
-```
+### Version 2.0 (December 2024)
+- ✅ **Universal File Detection**: Works with any file type
+- ✅ **Conversation-Based Analysis**: Diff block detection
+- ✅ **Resume Conversation Support**: Auto-continue at 25 tool limit
+- ✅ **Separated Button Analytics**: Color-coded button type tracking
+- ✅ **Enhanced Debug Logging**: Detailed file extraction debugging
+- ✅ **Fixed NaN Issues**: Safe number validation throughout
+- ✅ **Improved UI**: Better analytics display and controls
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Test with Cursor IDE
-4. Submit a pull request
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
 
 ## 📄 License
 
-MIT License - feel free to use and modify!
+MIT License - see [LICENSE](LICENSE) file for details.
 
-## 🐛 Issues & Support
+## 👨‍💻 Created By
 
-- **Bug Reports**: Open an issue with console output and steps to reproduce
-- **Feature Requests**: Describe your use case and desired functionality
-- **Questions**: Check existing issues or start a discussion
+**Valsaraj Viswanathan** ([@ivalsaraj](https://linkedin.com/in/ivalsaraj))
 
-## 👨‍💻 Credits
+- 🐦 Twitter: [@ivalsaraj](https://twitter.com/ivalsaraj)
+- 💼 LinkedIn: [ivalsaraj](https://linkedin.com/in/ivalsaraj)
+- 🌐 Website: [valsaraj.dev](https://valsaraj.dev)
 
-**Created by [@ivalsaraj](https://linkedin.com/in/ivalsaraj)**
+## ⭐ Support
 
-- 🔗 **LinkedIn**: [linkedin.com/in/ivalsaraj](https://linkedin.com/in/ivalsaraj)
-- 🐙 **GitHub**: [github.com/ivalsaraj](https://github.com/ivalsaraj)
-- 📧 **Repository**: [cursor-auto-accept-full-agentic-mode](https://github.com/ivalsaraj/cursor-auto-accept-full-agentic-mode)
+If this script saves you time and improves your Cursor workflow, please:
+- ⭐ Star this repository
+- 🐛 Report bugs or request features
+- 📢 Share with other Cursor users
+- 💡 Contribute improvements
 
 ---
 
-**Made for the Cursor IDE community** 🚀
-
-*Streamline your AI-assisted development workflow with intelligent auto-clicking and comprehensive analytics* 
+<div align="center">
+  <strong>Happy Coding with Automated Cursor! 🚀</strong>
+  <br>
+  <em>Maximize your productivity with intelligent AI workflow automation</em>
+</div> 

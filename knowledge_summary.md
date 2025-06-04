@@ -108,4 +108,18 @@ recentDiffs(maxAge)     // Find recent diffs (ms)
 - **Resume Conversation**: Blue (#2196F3) - Session continuations
 - **Apply/Execute**: Purple (#9C27B0) - Other actions
 - Real-time counters in Analytics tab with 🎯 Button Types section
+
+## New Features
+- **TrustedHTML**: Use js inject way as they are in electron app. don't use raw tags, use js
+- **File detection**: Use conversation approach not button proximity. search latest message by data-message-index in conversations div for diff blocks
+- **NaN values**: Add safe number checks with isNaN fallback to 0 for all calculations
+- **Separated button analytics**: Implement different button type tracking with color coding
+- **Resume conversation auto-click**: Detect markdown links with data-link="command:composer.resumeCurrentChat"
+- **Universal file detection**: Script supports universal file detection for any file type not just js files
+- **Conversation-based file detection**: More reliable than button proximity method
+- **Debug logging**: Essential for troubleshooting file extraction issues
+- **README**: Completely rewritten with all new features and comprehensive documentation
+
+## Renamed Class
+- **SimpleAutoAccept**: Renamed to **autoAcceptAndAnalytics** throughout codebase
  
