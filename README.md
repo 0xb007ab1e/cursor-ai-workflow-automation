@@ -8,6 +8,9 @@
 
 <div align="center">
   <img src="auto-accept-demo.png" alt="Auto Accept Demo" width="400"/>
+  <img src="analytics.png" alt="Analytics Demo" width="400"/>
+  <img src="demo1.png" alt="App Demo" width="400"/>
+  
 </div>
 
 ## 🎯 What This Does

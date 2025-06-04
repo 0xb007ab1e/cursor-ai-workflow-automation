@@ -438,4 +438,157 @@ User reported that author credits weren't visible in the UI, reducing attributio
 - LinkedIn linking drives professional network growth
 - Maintains project quality standards
 
-This knowledge base represents accumulated wisdom from developing a production-quality browser automation tool. The emphasis on user experience, security compliance, and measurable value (ROI) proved crucial for adoption and success. 
+This knowledge base represents accumulated wisdom from developing a production-quality browser automation tool. The emphasis on user experience, security compliance, and measurable value (ROI) proved crucial for adoption and success.
+
+## DOM Structure Evolution
+
+### Filename Detection (2024-12-19 Update)
+
+Cursor's code block filename structure has evolved to use nested spans:
+
+```html
+<span class="composer-code-block-filename">
+  <span style="direction: ltr; unicode-bidi: embed;">filename.js</span>
+</span>
+```
+
+**Solution**: Use cascading selector strategy:
+1. `.composer-code-block-filename span[style*="direction: ltr"]` (primary)
+2. `.composer-code-block-filename span` (fallback)
+3. `.composer-code-block-filename` (final fallback)
+
+This ensures filename extraction works across Cursor UI changes while maintaining backward compatibility.
+
+## Resume Conversation Feature
+
+### Problem
+Users frequently encounter Cursor's 25 tool call limit during complex coding tasks, requiring manual clicking of "Resume Conversation" links.
+
+### Solution
+Added automatic detection and clicking of Resume Conversation links:
+- **Target Elements**: `.markdown-link[data-link="command:composer.resumeCurrentChat"]`
+- **Detection Method**: Searches for markdown links in message bubbles with specific data-link attribute
+- **Configuration**: Added `enableResume: true` config option with UI checkbox
+- **Integration**: Seamlessly integrated with existing button detection flow
+
+### Technical Implementation
+```javascript
+// Resume link detection selectors
+const resumeSelectors = [
+    '.markdown-link[data-link="command:composer.resumeCurrentChat"]',
+    '.markdown-link[data-link*="resume"]',
+    'span.markdown-link[data-link="command:composer.resumeCurrentChat"]'
+];
+```
+
+### Benefits
+- Maintains development momentum during long agent sessions
+- Prevents workflow interruption at 25 tool call limit
+- Automatic continuation of complex coding tasks
+
+## Diff Block Detection and Conversation Analysis
+
+### Problem
+Need to track and analyze file changes within the conversation to understand development progress and impact.
+
+### Solution
+Added comprehensive diff block detection and conversation analysis:
+
+#### Core Features
+1. **Diff Block Detection**: Identifies code change blocks in conversation
+2. **File Change Tracking**: Extracts filenames and change statistics
+3. **Conversation Context**: Provides overview of development activity
+4. **Real-time Analysis**: Monitors recent changes and activity
+
+#### Target Elements
+```javascript
+const diffSelectors = [
+    'div.composer-diff-block',
+    'div.composer-code-block-container', 
+    'div.composer-tool-former-message'
+];
+```
+
+#### Change Type Detection
+- **Addition**: Lines added (+N format)
+- **Deletion**: Lines deleted (-N format)  
+- **Modification**: Both additions and deletions
+- **File Creation**: New files detected
+
+#### Global Commands
+```javascript
+// Conversation analysis commands
+findDiffs()        // Find all diff blocks in conversation
+getContext()       // Get conversation overview with file changes
+logActivity()      // Log detailed conversation activity
+recentDiffs(maxAge) // Find recent diff blocks (default 30s)
+```
+
+### Technical Implementation
+
+#### File Information Extraction
+```javascript
+// Extract from code block headers
+const filenameElement = fileInfo.querySelector('.composer-code-block-filename span');
+const filename = filenameElement.textContent.trim();
+
+// Change statistics from status spans
+const statusSpan = block.querySelector('.composer-code-block-status span[style*="color"]');
+const linesAdded = extractNumber(statusText); // "+17" -> 17
+```
+
+#### Conversation Context Structure
+```javascript
+const context = {
+    conversationElement: conversationDiv,
+    totalMessages: 0,
+    recentDiffs: [],
+    filesChanged: ['file1.js', 'file2.css'],
+    lastActivity: new Date()
+};
+```
+
+### Benefits
+- **Development Tracking**: Monitor progress and file changes
+- **Impact Analysis**: Understand scope of modifications
+- **Session Analytics**: Track development velocity and patterns
+- **Debug Support**: Identify recent changes for troubleshooting
+
+### Integration with Existing Analytics
+- Diff block data integrates with file analytics system
+- Change statistics contribute to ROI tracking
+- File modification patterns enhance development insights
+
+### Usage Examples
+```javascript
+// Check recent activity
+logActivity();
+
+// Find files changed in last minute
+const recent = recentDiffs(60000);
+console.log(`${recent.length} recent changes`);
+
+// Get full conversation context
+const context = getContext();
+console.log(`${context.filesChanged.length} files modified`);
+```
+
+## File Extension Recognition
+Enhanced file type detection for better analytics:
+- JavaScript: `.js`, `.jsx`, `.ts`, `.tsx`
+- Styling: `.css`, `.scss`, `.sass`, `.less`
+- Markup: `.html`, `.htm`, `.xml`, `.svg`
+- Configuration: `.json`, `.yaml`, `.yml`, `.toml`
+- Documentation: `.md`, `.txt`, `.rst`
+
+## Error Handling
+Robust error handling for all diff analysis operations:
+- Graceful fallback when elements not found
+- Safe extraction with null checks
+- Detailed error logging for debugging
+
+## Performance Considerations
+- DOM queries optimized with specific selectors
+- Recent diff filtering reduces processing overhead  
+- Lazy evaluation of conversation context
+- Minimal impact on existing auto-accept functionality 

@@ -4,8 +4,8 @@
 (function() {
     'use strict';
     
-    if (typeof globalThis.SimpleAutoAccept === 'undefined') {
-        class SimpleAutoAccept {
+    if (typeof globalThis.autoAcceptAndAnalytics === 'undefined') {
+        class autoAcceptAndAnalytics {
             constructor(interval = 2000) {
                 this.interval = interval;
                 this.isRunning = false;
@@ -51,14 +51,15 @@
                     enableRun: true,
                     enableRunCommand: true,
                     enableApply: true,
-                    enableExecute: true
+                    enableExecute: true,
+                    enableResume: true
                 };
                 
                 // Load persisted data
                 this.loadFromStorage();
                 
                 this.createControlPanel();
-                this.log('SimpleAutoAccept initialized with file analytics and ROI tracking');
+                this.log('autoAcceptAndAnalytics initialized with file analytics and ROI tracking');
             }
             
             // Persistence methods
@@ -254,7 +255,8 @@
                     'accept': this.roiTracking.averageCompleteWorkflow,
                     'run': this.roiTracking.averageCompleteWorkflow + 2000, // extra caution for running commands
                     'execute': this.roiTracking.averageCompleteWorkflow + 2000,
-                    'apply': this.roiTracking.averageCompleteWorkflow
+                    'apply': this.roiTracking.averageCompleteWorkflow,
+                    'resume': this.roiTracking.averageCompleteWorkflow + 3000 // time saved by auto-resuming conversation
                 };
                 
                 const manualTime = workflowTimeSavings[buttonType.toLowerCase()] || this.roiTracking.averageCompleteWorkflow;
@@ -299,6 +301,187 @@
             // Extract file info from code blocks when button is clicked
             extractFileInfo(button) {
                 try {
+                    if (this.debugMode) {
+                        this.log('=== DEBUG: extractFileInfo called ===');
+                        this.log(`Button text: "${button.textContent.trim()}"`);
+                        this.log(`Button classes: ${button.className}`);
+                    }
+
+                    // New approach: Find the latest diff block in conversations div
+                    const conversationsDiv = document.querySelector('div.conversations');
+                    if (!conversationsDiv) {
+                        if (this.debugMode) this.log('DEBUG: No conversations div found');
+                        return null;
+                    }
+
+                    // Find all message bubbles with data-message-index, sorted by index (latest first)
+                    const messageBubbles = Array.from(conversationsDiv.querySelectorAll('[data-message-index]'))
+                        .sort((a, b) => {
+                            const indexA = parseInt(a.getAttribute('data-message-index'));
+                            const indexB = parseInt(b.getAttribute('data-message-index'));
+                            return indexB - indexA; // Descending order (latest first)
+                        });
+
+                    if (this.debugMode) {
+                        this.log(`DEBUG: Found ${messageBubbles.length} message bubbles`);
+                        if (messageBubbles.length > 0) {
+                            const latestIndex = messageBubbles[0].getAttribute('data-message-index');
+                            this.log(`DEBUG: Latest message index: ${latestIndex}`);
+                        }
+                    }
+
+                    // Look for diff blocks in the latest few messages
+                    for (let i = 0; i < Math.min(5, messageBubbles.length); i++) {
+                        const bubble = messageBubbles[i];
+                        const messageIndex = bubble.getAttribute('data-message-index');
+                        
+                        if (this.debugMode) {
+                            this.log(`DEBUG: Checking message ${messageIndex}`);
+                        }
+
+                        // Look for code block containers within this message
+                        const codeBlocks = bubble.querySelectorAll('.composer-code-block-container, .composer-tool-former-message, .composer-diff-block');
+                        
+                        if (this.debugMode && codeBlocks.length > 0) {
+                            this.log(`DEBUG: Found ${codeBlocks.length} code blocks in message ${messageIndex}`);
+                        }
+
+                        for (const block of codeBlocks) {
+                            const fileInfo = this.extractFileInfoFromBlock(block);
+                            if (fileInfo) {
+                                if (this.debugMode) {
+                                    this.log(`DEBUG: Successfully extracted file info: ${JSON.stringify(fileInfo)}`);
+                                }
+                                return fileInfo;
+                            }
+                        }
+                    }
+
+                    if (this.debugMode) {
+                        this.log('DEBUG: No file info found in recent messages, trying fallback method');
+                    }
+
+                    // Fallback: Try the old method as backup
+                    return this.extractFileInfoFallback(button);
+
+                } catch (error) {
+                    this.log(`Error extracting file info: ${error.message}`);
+                    if (this.debugMode) {
+                        this.log(`DEBUG: Error stack: ${error.stack}`);
+                    }
+                    return null;
+                }
+            }
+
+            // Extract file info from a specific code block
+            extractFileInfoFromBlock(block) {
+                try {
+                    if (this.debugMode) {
+                        this.log(`DEBUG: Analyzing block with classes: ${block.className}`);
+                    }
+
+                    // Look for filename in multiple possible locations
+                    let filename = null;
+                    let addedLines = 0;
+                    let deletedLines = 0;
+
+                    // Method 1: .composer-code-block-filename span
+                    const filenameSpan = block.querySelector('.composer-code-block-filename span[style*="direction: ltr"]') ||
+                                        block.querySelector('.composer-code-block-filename span') ||
+                                        block.querySelector('.composer-code-block-filename');
+                    
+                    if (filenameSpan) {
+                        filename = filenameSpan.textContent.trim();
+                        if (this.debugMode) {
+                            this.log(`DEBUG: Found filename via span: "${filename}"`);
+                        }
+                    }
+
+                    // Method 2: Look for any element with filename-like content
+                    if (!filename) {
+                        const allSpans = block.querySelectorAll('span');
+                        for (const span of allSpans) {
+                            const text = span.textContent.trim();
+                            // Check if text looks like a filename (has extension)
+                            if (text && text.includes('.') && text.length < 100 && !text.includes(' ')) {
+                                const parts = text.split('.');
+                                if (parts.length >= 2 && parts[parts.length - 1].length <= 10) {
+                                    filename = text;
+                                    if (this.debugMode) {
+                                        this.log(`DEBUG: Found filename via pattern matching: "${filename}"`);
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // Extract diff stats from status elements
+                    const statusElements = block.querySelectorAll('.composer-code-block-status span, span[style*="color"]');
+                    
+                    if (this.debugMode) {
+                        this.log(`DEBUG: Found ${statusElements.length} status elements`);
+                    }
+
+                    for (const statusEl of statusElements) {
+                        const statusText = statusEl.textContent.trim();
+                        if (this.debugMode) {
+                            this.log(`DEBUG: Status text: "${statusText}"`);
+                        }
+
+                        // Look for +N/-N patterns
+                        const addedMatch = statusText.match(/\+(\d+)/);
+                        const deletedMatch = statusText.match(/-(\d+)/);
+                        
+                        if (addedMatch) {
+                            addedLines = Math.max(addedLines, parseInt(addedMatch[1]));
+                            if (this.debugMode) {
+                                this.log(`DEBUG: Found added lines: ${addedLines}`);
+                            }
+                        }
+                        if (deletedMatch) {
+                            deletedLines = Math.max(deletedLines, parseInt(deletedMatch[1]));
+                            if (this.debugMode) {
+                                this.log(`DEBUG: Found deleted lines: ${deletedLines}`);
+                            }
+                        }
+                    }
+
+                    if (filename) {
+                        const fileInfo = {
+                            filename,
+                            addedLines: addedLines || 0,
+                            deletedLines: deletedLines || 0,
+                            timestamp: new Date()
+                        };
+
+                        if (this.debugMode) {
+                            this.log(`DEBUG: Created file info object: ${JSON.stringify(fileInfo)}`);
+                        }
+
+                        return fileInfo;
+                    }
+
+                    if (this.debugMode) {
+                        this.log('DEBUG: No filename found in this block');
+                    }
+                    return null;
+
+                } catch (error) {
+                    if (this.debugMode) {
+                        this.log(`DEBUG: Error in extractFileInfoFromBlock: ${error.message}`);
+                    }
+                    return null;
+                }
+            }
+
+            // Fallback method (original approach)
+            extractFileInfoFallback(button) {
+                try {
+                    if (this.debugMode) {
+                        this.log('DEBUG: Using fallback extraction method');
+                    }
+
                     // Look for the composer-code-block-container that contains this button
                     let container = button.closest('.composer-code-block-container');
                     if (!container) {
@@ -313,10 +496,21 @@
                         }
                     }
                     
-                    if (!container) return null;
+                    if (!container) {
+                        if (this.debugMode) {
+                            this.log('DEBUG: No container found in fallback method');
+                        }
+                        return null;
+                    }
                     
                     // Extract filename from .composer-code-block-filename
-                    const filenameElement = container.querySelector('.composer-code-block-filename span');
+                    let filenameElement = container.querySelector('.composer-code-block-filename span[style*="direction: ltr"]');
+                    if (!filenameElement) {
+                        filenameElement = container.querySelector('.composer-code-block-filename span');
+                    }
+                    if (!filenameElement) {
+                        filenameElement = container.querySelector('.composer-code-block-filename');
+                    }
                     const filename = filenameElement ? filenameElement.textContent.trim() : 'Unknown';
                     
                     // Extract diff stats from .composer-code-block-status
@@ -332,21 +526,22 @@
                         if (addedMatch) addedLines = parseInt(addedMatch[1]);
                         if (deletedMatch) deletedLines = parseInt(deletedMatch[1]);
                         
-                        // Debug logging to verify extracted values (only if debug mode is on)
                         if (this.debugMode) {
-                            this.log(`Debug: Extracted from UI - File: ${filename}, Status: "${statusText}", +${addedLines}/-${deletedLines}`);
+                            this.log(`DEBUG: Fallback extracted - File: ${filename}, Status: "${statusText}", +${addedLines}/-${deletedLines}`);
                         }
                     }
                     
                     return {
                         filename,
-                        addedLines,
-                        deletedLines,
+                        addedLines: addedLines || 0,
+                        deletedLines: deletedLines || 0,
                         timestamp: new Date()
                     };
                     
                 } catch (error) {
-                    this.log(`Error extracting file info: ${error.message}`);
+                    if (this.debugMode) {
+                        this.log(`DEBUG: Error in fallback method: ${error.message}`);
+                    }
                     return null;
                 }
             }
@@ -357,40 +552,63 @@
                 
                 const { filename, addedLines, deletedLines, timestamp } = fileInfo;
                 
-                // Calculate time saved for this action
-                const timeSaved = this.calculateTimeSaved(buttonType);
+                // Normalize button type for consistent tracking
+                const normalizedButtonType = this.normalizeButtonType(buttonType);
+                
+                // Calculate time saved for this action  
+                const timeSaved = this.calculateTimeSaved(normalizedButtonType);
+                
+                // Ensure numbers are valid (not NaN)
+                const safeAddedLines = isNaN(addedLines) ? 0 : addedLines;
+                const safeDeletedLines = isNaN(deletedLines) ? 0 : deletedLines;
+                const safeTimeSaved = isNaN(timeSaved) ? 0 : timeSaved;
                 
                 // Update file statistics
                 if (this.analytics.files.has(filename)) {
                     const existing = this.analytics.files.get(filename);
                     existing.acceptCount++;
                     existing.lastAccepted = timestamp;
-                    existing.totalAdded += addedLines;
-                    existing.totalDeleted += deletedLines;
+                    existing.totalAdded += safeAddedLines;
+                    existing.totalDeleted += safeDeletedLines;
+                    
+                    // Track button type counts
+                    if (!existing.buttonTypes) {
+                        existing.buttonTypes = {};
+                    }
+                    existing.buttonTypes[normalizedButtonType] = (existing.buttonTypes[normalizedButtonType] || 0) + 1;
                 } else {
                     this.analytics.files.set(filename, {
                         acceptCount: 1,
                         firstAccepted: timestamp,
                         lastAccepted: timestamp,
-                        totalAdded: addedLines,
-                        totalDeleted: deletedLines
+                        totalAdded: safeAddedLines,
+                        totalDeleted: safeDeletedLines,
+                        buttonTypes: {
+                            [normalizedButtonType]: 1
+                        }
                     });
                 }
                 
-                // Track in session
+                // Track in session with separate button type tracking
                 this.analytics.sessions.push({
                     filename,
-                    addedLines,
-                    deletedLines,
+                    addedLines: safeAddedLines,
+                    deletedLines: safeDeletedLines,
                     timestamp,
-                    buttonType,
-                    timeSaved
+                    buttonType: normalizedButtonType,
+                    timeSaved: safeTimeSaved
                 });
+                
+                // Update button type counters
+                if (!this.analytics.buttonTypeCounts) {
+                    this.analytics.buttonTypeCounts = {};
+                }
+                this.analytics.buttonTypeCounts[normalizedButtonType] = (this.analytics.buttonTypeCounts[normalizedButtonType] || 0) + 1;
                 
                 this.analytics.totalAccepts++;
                 
-                this.logToPanel(`📁 ${filename} (+${addedLines}/-${deletedLines}) [saved ${this.formatTimeDuration(timeSaved)}]`, 'file');
-                this.log(`File accepted: ${filename} (+${addedLines}/-${deletedLines}) - Time saved: ${this.formatTimeDuration(timeSaved)}`);
+                this.logToPanel(`📁 ${filename} (+${safeAddedLines}/-${safeDeletedLines}) [${normalizedButtonType}] [saved ${this.formatTimeDuration(safeTimeSaved)}]`, 'file');
+                this.log(`File accepted: ${filename} (+${safeAddedLines}/-${safeDeletedLines}) - Button: ${normalizedButtonType} - Time saved: ${this.formatTimeDuration(safeTimeSaved)}`);
                 
                 // Update analytics panel if visible
                 if (this.currentTab === 'analytics' || this.currentTab === 'roi') {
@@ -399,6 +617,27 @@
                 
                 // Update main footer ROI display
                 this.updateMainFooter();
+                
+                // Save to storage
+                this.saveToStorage();
+            }
+
+            // Normalize button type for consistent analytics
+            normalizeButtonType(buttonType) {
+                if (!buttonType) return 'unknown';
+                
+                const type = buttonType.toLowerCase().trim();
+                
+                // Map variations to standard types
+                if (type.includes('accept all')) return 'accept-all';
+                if (type.includes('accept')) return 'accept';
+                if (type.includes('run command')) return 'run-command';
+                if (type.includes('run')) return 'run';
+                if (type.includes('apply')) return 'apply';
+                if (type.includes('execute')) return 'execute';
+                if (type.includes('resume')) return 'resume-conversation';
+                
+                return type;
             }
             
             createControlPanel() {
@@ -501,7 +740,8 @@
                     { id: 'aa-accept-all', text: 'Accept All', checked: true },
                     { id: 'aa-accept', text: 'Accept', checked: true },
                     { id: 'aa-run', text: 'Run', checked: true },
-                    { id: 'aa-apply', text: 'Apply', checked: true }
+                    { id: 'aa-apply', text: 'Apply', checked: true },
+                    { id: 'aa-resume', text: 'Resume Conversation', checked: true }
                 ];
                 
                 configOptions.forEach(option => {
@@ -716,6 +956,48 @@
                     statDiv.appendChild(valueSpan);
                     summaryDiv.appendChild(statDiv);
                 });
+
+                // Add button type breakdown
+                if (this.analytics.buttonTypeCounts && Object.keys(this.analytics.buttonTypeCounts).length > 0) {
+                    const buttonTypeDiv = document.createElement('div');
+                    buttonTypeDiv.className = 'aa-button-types';
+                    
+                    const buttonTypeTitle = document.createElement('h5');
+                    buttonTypeTitle.textContent = '🎯 Button Types';
+                    buttonTypeTitle.style.cssText = 'margin: 8px 0 4px 0; font-size: 11px; color: #ddd;';
+                    buttonTypeDiv.appendChild(buttonTypeTitle);
+                    
+                    Object.entries(this.analytics.buttonTypeCounts).forEach(([type, count]) => {
+                        const typeDiv = document.createElement('div');
+                        typeDiv.className = 'aa-stat aa-button-type-stat';
+                        typeDiv.style.cssText = 'font-size: 10px; padding: 2px 0;';
+                        
+                        const labelSpan = document.createElement('span');
+                        labelSpan.className = 'aa-stat-label';
+                        labelSpan.textContent = `${type}:`;
+                        
+                        const valueSpan = document.createElement('span');
+                        valueSpan.className = 'aa-stat-value';
+                        valueSpan.textContent = `${count}x`;
+                        
+                        // Add type-specific styling
+                        if (type === 'accept' || type === 'accept-all') {
+                            valueSpan.style.color = '#4CAF50';
+                        } else if (type === 'run' || type === 'run-command') {
+                            valueSpan.style.color = '#FF9800';
+                        } else if (type === 'resume-conversation') {
+                            valueSpan.style.color = '#2196F3';
+                        } else {
+                            valueSpan.style.color = '#9C27B0';
+                        }
+                        
+                        typeDiv.appendChild(labelSpan);
+                        typeDiv.appendChild(valueSpan);
+                        buttonTypeDiv.appendChild(typeDiv);
+                    });
+                    
+                    summaryDiv.appendChild(buttonTypeDiv);
+                }
                 
                 // Create files section
                 const filesDiv = document.createElement('div');
@@ -1475,7 +1757,8 @@
                             'aa-accept-all': 'enableAcceptAll',
                             'aa-accept': 'enableAccept',
                             'aa-run': 'enableRun',
-                            'aa-apply': 'enableApply'
+                            'aa-apply': 'enableApply',
+                            'aa-resume': 'enableResume'
                         };
                         const configKey = configMap[checkbox.id];
                         if (configKey) {
@@ -1574,7 +1857,7 @@
                     return buttons;
                 }
                 
-                // Check previous sibling elements
+                // Check previous sibling elements for regular buttons
                 let currentElement = inputBox.previousElementSibling;
                 let searchDepth = 0;
                 
@@ -1585,6 +1868,12 @@
                     
                     currentElement = currentElement.previousElementSibling;
                     searchDepth++;
+                }
+
+                // Also search for Resume Conversation links in message bubbles if enabled
+                if (this.config.enableResume) {
+                    const resumeLinks = this.findResumeLinks();
+                    buttons.push(...resumeLinks);
                 }
                 
                 return buttons;
@@ -1628,6 +1917,11 @@
             // Check if element is an Accept button
             isAcceptButton(element) {
                 if (!element || !element.textContent) return false;
+
+                // Check if it's a Resume Conversation link first
+                if (this.config.enableResume && this.isResumeLink(element)) {
+                    return true;
+                }
                 
                 const text = element.textContent.toLowerCase().trim();
                 
@@ -1638,7 +1932,8 @@
                     { pattern: 'run command', enabled: this.config.enableRunCommand },
                     { pattern: 'run', enabled: this.config.enableRun },
                     { pattern: 'apply', enabled: this.config.enableApply },
-                    { pattern: 'execute', enabled: this.config.enableExecute }
+                    { pattern: 'execute', enabled: this.config.enableExecute },
+                    { pattern: 'resume', enabled: this.config.enableResume }
                 ];
                 
                 // Check if text matches any enabled pattern
@@ -1681,13 +1976,34 @@
             // Click element with multiple strategies
             clickElement(element) {
                 try {
-                    // Extract file info and button type before clicking
-                    const fileInfo = this.extractFileInfo(element);
+                    // Determine button type for better tracking
                     const buttonText = element.textContent.trim().toLowerCase();
+                    const isResumeLink = this.isResumeLink(element);
+                    
+                    if (this.debugMode) {
+                        this.log(`=== DEBUG: clickElement called ===`);
+                        this.log(`Button text: "${buttonText}"`);
+                        this.log(`Is Resume Link: ${isResumeLink}`);
+                        this.log(`Element classes: ${element.className}`);
+                        this.log(`Element tag: ${element.tagName}`);
+                    }
+
+                    // Extract file info before clicking (only for non-resume buttons)
+                    let fileInfo = null;
+                    if (!isResumeLink) {
+                        fileInfo = this.extractFileInfo(element);
+                        if (this.debugMode) {
+                            this.log(`DEBUG: File info extraction result: ${fileInfo ? JSON.stringify(fileInfo) : 'null'}`);
+                        }
+                    }
                     
                     const rect = element.getBoundingClientRect();
                     const x = rect.left + rect.width / 2;
                     const y = rect.top + rect.height / 2;
+                    
+                    if (this.debugMode) {
+                        this.log(`DEBUG: Element position: x=${x}, y=${y}`);
+                    }
                     
                     // Strategy 1: Direct click
                     element.click();
@@ -1702,7 +2018,7 @@
                     });
                     element.dispatchEvent(mouseEvent);
                     
-                    // Strategy 3: Focus and Enter
+                    // Strategy 3: Focus and Enter (for buttons and interactive elements)
                     if (element.focus) element.focus();
                     const enterEvent = new KeyboardEvent('keydown', {
                         key: 'Enter',
@@ -1712,18 +2028,61 @@
                     });
                     element.dispatchEvent(enterEvent);
                     
-                    // Track file analytics if we have file info
-                    if (fileInfo) {
+                    // Handle different button types for analytics
+                    if (isResumeLink) {
+                        // For Resume Conversation links, just track the action
+                        const timeSaved = this.calculateTimeSaved('resume-conversation');
+                        this.logToPanel(`🔄 Resume Conversation clicked [saved ${this.formatTimeDuration(timeSaved)}]`, 'info');
+                        this.log(`Resume Conversation clicked - Time saved: ${this.formatTimeDuration(timeSaved)}`);
+                        
+                        // Track button type count
+                        if (!this.analytics.buttonTypeCounts) {
+                            this.analytics.buttonTypeCounts = {};
+                        }
+                        this.analytics.buttonTypeCounts['resume-conversation'] = (this.analytics.buttonTypeCounts['resume-conversation'] || 0) + 1;
+                        
+                        // Update totals
+                        this.analytics.totalAccepts++;
+                        this.roiTracking.totalTimeSaved += timeSaved;
+                        
+                        // Save to storage
+                        this.saveToStorage();
+                    } else if (fileInfo) {
+                        // Track file analytics for regular buttons
                         this.trackFileAcceptance(fileInfo, buttonText);
                     } else {
                         // Still track time saved even without file info
-                        this.calculateTimeSaved(buttonText);
-                        this.logToPanel(`✓ Clicked: ${element.textContent.trim()}`, 'info');
+                        const timeSaved = this.calculateTimeSaved(buttonText);
+                        this.logToPanel(`✓ Clicked: ${element.textContent.trim()} [saved ${this.formatTimeDuration(timeSaved)}]`, 'info');
+                        
+                        // Track button type count
+                        const normalizedType = this.normalizeButtonType(buttonText);
+                        if (!this.analytics.buttonTypeCounts) {
+                            this.analytics.buttonTypeCounts = {};
+                        }
+                        this.analytics.buttonTypeCounts[normalizedType] = (this.analytics.buttonTypeCounts[normalizedType] || 0) + 1;
+                        
+                        // Update totals
+                        this.analytics.totalAccepts++;
+                        this.roiTracking.totalTimeSaved += timeSaved;
+                        
+                        // Save to storage
+                        this.saveToStorage();
                     }
+                    
+                    // Update UI
+                    this.updatePanelStatus();
+                    if (this.currentTab === 'analytics' || this.currentTab === 'roi') {
+                        this.updateAnalyticsContent();
+                    }
+                    this.updateMainFooter();
                     
                     return true;
                 } catch (error) {
                     this.logToPanel(`Failed to click: ${error.message}`, 'warning');
+                    if (this.debugMode) {
+                        this.log(`DEBUG: Click error stack: ${error.stack}`);
+                    }
                     return false;
                 }
             }
@@ -1903,14 +2262,270 @@
                 
                 this.log('=== END DEBUG ===');
             }
+            
+            // Find Resume Conversation links in message bubbles
+            findResumeLinks() {
+                const resumeLinks = [];
+                
+                // Look for Resume Conversation links in markdown content
+                const resumeSelectors = [
+                    '.markdown-link[data-link="command:composer.resumeCurrentChat"]',
+                    '.markdown-link[data-link*="resume"]',
+                    'span.markdown-link[data-link="command:composer.resumeCurrentChat"]'
+                ];
+                
+                for (const selector of resumeSelectors) {
+                    const links = document.querySelectorAll(selector);
+                    for (const link of links) {
+                        if (this.isResumeLink(link)) {
+                            resumeLinks.push(link);
+                        }
+                    }
+                }
+                
+                return resumeLinks;
+            }
+
+            // Check if element is a Resume Conversation link
+            isResumeLink(element) {
+                if (!element) return false;
+                
+                // Check for Resume Conversation specific attributes and text
+                const hasResumeCommand = element.getAttribute('data-link') === 'command:composer.resumeCurrentChat';
+                const hasResumeText = element.textContent && element.textContent.toLowerCase().includes('resume');
+                const isMarkdownLink = element.classList.contains('markdown-link');
+                
+                if (!hasResumeCommand && !hasResumeText) return false;
+                
+                const isVisible = this.isElementVisible(element);
+                const isClickable = this.isElementClickable(element);
+                
+                return isVisible && isClickable;
+            }
+
+            // Diff Block Detection and Analysis
+            findDiffBlocks() {
+                const diffBlocks = [];
+                
+                // Look for composer diff blocks in the conversation
+                const diffSelectors = [
+                    'div.composer-diff-block',
+                    'div.composer-code-block-container',
+                    'div.composer-tool-former-message'
+                ];
+                
+                for (const selector of diffSelectors) {
+                    const blocks = document.querySelectorAll(selector);
+                    for (const block of blocks) {
+                        const diffInfo = this.analyzeDiffBlock(block);
+                        if (diffInfo) {
+                            diffBlocks.push(diffInfo);
+                        }
+                    }
+                }
+                
+                return diffBlocks;
+            }
+
+            // Analyze a single diff block for file information
+            analyzeDiffBlock(block) {
+                try {
+                    if (!block) return null;
+                    
+                    const diffInfo = {
+                        blockElement: block,
+                        timestamp: new Date(),
+                        files: [],
+                        changeType: 'unknown'
+                    };
+                    
+                    // Look for file header information
+                    const fileHeader = block.querySelector('.composer-code-block-header');
+                    if (fileHeader) {
+                        const fileInfo = this.extractFileInfoFromHeader(fileHeader);
+                        if (fileInfo) {
+                            diffInfo.files.push(fileInfo);
+                        }
+                    }
+                    
+                    // Look for file name in the filename span
+                    const filenameSpan = block.querySelector('.composer-code-block-filename span');
+                    if (filenameSpan && !diffInfo.files.length) {
+                        const filename = filenameSpan.textContent.trim();
+                        if (filename) {
+                            diffInfo.files.push({
+                                name: filename,
+                                path: filename,
+                                extension: this.getFileExtension(filename)
+                            });
+                        }
+                    }
+                    
+                    // Check for change indicators (+/- numbers)
+                    const statusSpan = block.querySelector('.composer-code-block-status span[style*="color"]');
+                    if (statusSpan) {
+                        const statusText = statusSpan.textContent.trim();
+                        if (statusText.includes('+')) {
+                            diffInfo.changeType = 'addition';
+                            diffInfo.linesAdded = this.extractNumber(statusText);
+                        } else if (statusText.includes('-')) {
+                            diffInfo.changeType = 'deletion';
+                            diffInfo.linesDeleted = this.extractNumber(statusText);
+                        }
+                    }
+                    
+                    // Look for both additions and deletions
+                    const allStatusSpans = block.querySelectorAll('.composer-code-block-status span[style*="color"]');
+                    let hasAdditions = false, hasDeletions = false;
+                    
+                    allStatusSpans.forEach(span => {
+                        const text = span.textContent.trim();
+                        if (text.includes('+')) {
+                            hasAdditions = true;
+                            diffInfo.linesAdded = this.extractNumber(text);
+                        } else if (text.includes('-')) {
+                            hasDeletions = true;
+                            diffInfo.linesDeleted = this.extractNumber(text);
+                        }
+                    });
+                    
+                    if (hasAdditions && hasDeletions) {
+                        diffInfo.changeType = 'modification';
+                    } else if (hasAdditions) {
+                        diffInfo.changeType = 'addition';
+                    } else if (hasDeletions) {
+                        diffInfo.changeType = 'deletion';
+                    }
+                    
+                    return diffInfo.files.length > 0 ? diffInfo : null;
+                    
+                } catch (error) {
+                    this.log(`Error analyzing diff block: ${error.message}`);
+                    return null;
+                }
+            }
+
+            // Extract file information from code block header
+            extractFileInfoFromHeader(header) {
+                try {
+                    const fileInfo = header.querySelector('.composer-code-block-file-info');
+                    if (!fileInfo) return null;
+                    
+                    const filenameElement = fileInfo.querySelector('.composer-code-block-filename span');
+                    const filename = filenameElement ? filenameElement.textContent.trim() : null;
+                    
+                    if (!filename) return null;
+                    
+                    return {
+                        name: filename,
+                        path: filename,
+                        extension: this.getFileExtension(filename),
+                        hasIcon: !!fileInfo.querySelector('.composer-code-block-file-icon')
+                    };
+                    
+                } catch (error) {
+                    this.log(`Error extracting file info from header: ${error.message}`);
+                    return null;
+                }
+            }
+
+            // Get file extension from filename
+            getFileExtension(filename) {
+                if (!filename || typeof filename !== 'string') return '';
+                const lastDot = filename.lastIndexOf('.');
+                return lastDot > 0 ? filename.substring(lastDot + 1).toLowerCase() : '';
+            }
+
+            // Extract numbers from text (e.g., "+17" -> 17)
+            extractNumber(text) {
+                if (!text) return 0;
+                const match = text.match(/[+-]?(\d+)/);
+                return match ? parseInt(match[1], 10) : 0;
+            }
+
+            // Find recent diff blocks in conversation
+            findRecentDiffBlocks(maxAge = 30000) { // 30 seconds by default
+                const allDiffs = this.findDiffBlocks();
+                const cutoffTime = Date.now() - maxAge;
+                
+                return allDiffs.filter(diff => 
+                    diff.timestamp && diff.timestamp.getTime() > cutoffTime
+                );
+            }
+
+            // Get conversation context for file changes
+            getConversationContext() {
+                const conversationDiv = document.querySelector('div.conversations');
+                if (!conversationDiv) {
+                    this.log('Conversation container not found');
+                    return null;
+                }
+                
+                const context = {
+                    conversationElement: conversationDiv,
+                    totalMessages: 0,
+                    recentDiffs: [],
+                    filesChanged: new Set(),
+                    lastActivity: null
+                };
+                
+                // Count message bubbles
+                const messageBubbles = conversationDiv.querySelectorAll('[data-message-index]');
+                context.totalMessages = messageBubbles.length;
+                
+                // Find recent diff blocks
+                const recentDiffs = this.findRecentDiffBlocks();
+                context.recentDiffs = recentDiffs;
+                
+                // Extract unique files from recent diffs
+                recentDiffs.forEach(diff => {
+                    diff.files.forEach(file => {
+                        context.filesChanged.add(file.name);
+                    });
+                });
+                
+                // Convert Set to Array for easier handling
+                context.filesChanged = Array.from(context.filesChanged);
+                
+                // Find last activity timestamp
+                if (messageBubbles.length > 0) {
+                    const lastBubble = messageBubbles[messageBubbles.length - 1];
+                    context.lastActivity = new Date(); // Current time as approximation
+                }
+                
+                return context;
+            }
+
+            // Enhanced logging with conversation context
+            logConversationActivity() {
+                const context = this.getConversationContext();
+                if (!context) return;
+                
+                this.log('=== CONVERSATION ACTIVITY ===');
+                this.log(`Total messages: ${context.totalMessages}`);
+                this.log(`Recent diffs: ${context.recentDiffs.length}`);
+                this.log(`Files changed: ${context.filesChanged.length}`);
+                
+                if (context.filesChanged.length > 0) {
+                    this.log(`Changed files: ${context.filesChanged.join(', ')}`);
+                }
+                
+                context.recentDiffs.forEach((diff, index) => {
+                    this.log(`Diff ${index + 1}: ${diff.changeType} - ${diff.files.map(f => f.name).join(', ')}`);
+                    if (diff.linesAdded) this.log(`  +${diff.linesAdded} lines added`);
+                    if (diff.linesDeleted) this.log(`  -${diff.linesDeleted} lines deleted`);
+                });
+                
+                this.log('=== END CONVERSATION ACTIVITY ===');
+            }
         }
         
-        globalThis.SimpleAutoAccept = SimpleAutoAccept;
+        globalThis.autoAcceptAndAnalytics = autoAcceptAndAnalytics;
     }
     
     // Initialize
     if (!globalThis.simpleAccept) {
-        globalThis.simpleAccept = new globalThis.SimpleAutoAccept(2000);
+        globalThis.simpleAccept = new globalThis.autoAcceptAndAnalytics(2000);
         
         // Expose controls
         globalThis.startAccept = () => globalThis.simpleAccept.start();
@@ -1948,8 +2563,24 @@
             console.log('Analytics tab opened in control panel');
         };
         
+        // Conversation Analysis controls
+        globalThis.findDiffs = () => globalThis.simpleAccept.findDiffBlocks();
+        globalThis.getContext = () => globalThis.simpleAccept.getConversationContext();
+        globalThis.logActivity = () => globalThis.simpleAccept.logConversationActivity();
+        globalThis.recentDiffs = (maxAge) => globalThis.simpleAccept.findRecentDiffBlocks(maxAge);
+        
+        // Debug controls
+        globalThis.enableDebug = () => {
+            globalThis.simpleAccept.debugMode = true;
+            console.log('Debug mode enabled - file extraction logging activated');
+        };
+        globalThis.disableDebug = () => {
+            globalThis.simpleAccept.debugMode = false;
+            console.log('Debug mode disabled');
+        };
+        
         // Force visible startup message
-        const startupMsg = '[SimpleAutoAccept] SCRIPT LOADED AND ACTIVE!';
+        const startupMsg = '[autoAcceptAndAnalytics] SCRIPT LOADED AND ACTIVE!';
         console.log(startupMsg);
         console.info(startupMsg);
         console.warn(startupMsg);
@@ -1967,9 +2598,10 @@
         
         console.log('Commands: startAccept(), stopAccept(), acceptStatus(), debugAccept()');
         console.log('Analytics: showAnalytics(), exportAnalytics(), clearAnalytics(), clearStorage(), validateData()');
-        console.log('Debug: toggleDebug() - Enable/disable debug logging');
+        console.log('Debug: toggleDebug(), enableDebug(), disableDebug() - Control debug logging');
         console.log('Calibration: calibrateWorkflow(manualSeconds, autoMs) - Adjust workflow timing');
         console.log('Config: enableOnly([types]), enableAll(), disableAll(), toggleButton(type)');
-        console.log('Types: "acceptAll", "accept", "run", "runCommand", "apply", "execute"');
+        console.log('Conversation: findDiffs(), getContext(), logActivity(), recentDiffs(maxAge)');
+        console.log('Types: "acceptAll", "accept", "run", "runCommand", "apply", "execute", "resume"');
     }
 })(); 
