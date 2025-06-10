@@ -1,4 +1,4 @@
-# Cursor Auto-Accept & Analytics Script
+# TRUE YOLO MODE - Cursor Auto-Accept & Analytics Script
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Cursor](https://img.shields.io/badge/Cursor-Compatible-blue.svg)](https://cursor.sh/)
