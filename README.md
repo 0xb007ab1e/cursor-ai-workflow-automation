@@ -463,11 +463,11 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 👨‍💻 Created By
 
-**Valsaraj Viswanathan** ([@ivalsaraj](https://linkedin.com/in/ivalsaraj))
+**Valsaraj R** ([@ivalsaraj](https://linkedin.com/in/ivalsaraj))
 
-- 🐦 Twitter: [@ivalsaraj](https://twitter.com/ivalsaraj)
+- 🐦 X: [@ivalsaraj](https://twitter.com/ivalsaraj)
 - 💼 LinkedIn: [ivalsaraj](https://linkedin.com/in/ivalsaraj)
-- 🌐 Website: [valsaraj.dev](https://valsaraj.dev)
+- 🌐 Website: [valsaraj.com](https://valsaraj.com)
 
 ## ⭐ Support
 
