@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Cursor](https://img.shields.io/badge/Cursor-Compatible-blue.svg)](https://cursor.sh/)
 [![Created by @ivalsaraj](https://img.shields.io/badge/Created%20by-@ivalsaraj-blue)](https://linkedin.com/in/ivalsaraj)
-### Why can't Cursor work like auto-agentic like Bolt, Loveable, or v0? Like True Yolo Mode, Here is the answer of "How to make it"!
+### Why can't Cursor work like fully-agentic like Bolt, Loveable, or v0 even with high efficient models? Like "Prompt to Production" or "True Yolo Mode", Here is the answer of "How to make it"!
 **Automatically accept Cursor AI suggestions with comprehensive analytics, conversation analysis, and ROI tracking.**
 ##
 <div align="center">
