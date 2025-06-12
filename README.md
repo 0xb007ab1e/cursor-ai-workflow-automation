@@ -8,7 +8,7 @@
 ##
 <div align="center">
   <img src="auto-accept-demo.png" alt="Auto Accept Demo" width="250"/>
-  <img src="demo1.png" alt="App Demo" width="250"/>
+  <img src="demo1.png" alt="App Demo" width="200"/>
   <img src="analytics.png" alt="Analytics Demo" width="200"/>
   <img src="analytics-2.png" alt="Analytics Demo" width="200"/>
 </div>
