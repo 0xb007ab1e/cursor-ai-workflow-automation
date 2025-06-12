@@ -10,7 +10,7 @@
   <img src="auto-accept-demo.png" alt="Auto Accept Demo" width="250"/>
   <img src="demo1.png" alt="App Demo" width="250"/>
   <img src="analytics.png" alt="Analytics Demo" width="300"/>
-
+  <img src="analytics-2.png" alt="Analytics Demo" width="300"/>
 </div>
 
 ## 🎯 What This Does
