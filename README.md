@@ -3,9 +3,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Cursor](https://img.shields.io/badge/Cursor-Compatible-blue.svg)](https://cursor.sh/)
 [![Created by @ivalsaraj](https://img.shields.io/badge/Created%20by-@ivalsaraj-blue)](https://linkedin.com/in/ivalsaraj)
-
+### Why can't Cursor work like auto-agentic like Bolt, Loveable, or v0? Like True Yolo Mode, Here is the answer of "How to make it"!
 **Automatically accept Cursor AI suggestions with comprehensive analytics, conversation analysis, and ROI tracking.**
-
+##
 <div align="center">
   <img src="auto-accept-demo.png" alt="Auto Accept Demo" width="250"/>
   <img src="demo1.png" alt="App Demo" width="250"/>
