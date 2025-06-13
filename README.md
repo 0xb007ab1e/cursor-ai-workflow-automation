@@ -65,6 +65,8 @@ This advanced script automatically clicks "Accept", "Accept All", "Run", "Resume
 5. Paste script content and press Enter
 6. Script loads with `[autoAcceptAndAnalytics] SCRIPT LOADED AND ACTIVE!` message
 
+This is important step (STEP 4 above)
+![](allowpasting.png)
 ### Method 2: Direct Download
 1. Download `cursor-auto-accept-simple.js` from repository
 2. Follow console steps above
