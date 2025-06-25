@@ -20,10 +20,12 @@ This advanced script automatically clicks "Accept", "Accept All", "Run", "Resume
 ## ⚡ Key Features
 
 ### 🤖 Smart Automation
+- **Multi-IDE Support**: Works with both Cursor and Windsurf IDEs with automatic detection
 - **Universal Button Detection**: Accept, Run, Apply, Execute, Resume Conversation
 - **Conversation-Based File Detection**: Finds files from latest diff blocks in conversation
 - **Universal File Support**: Works with ANY file type (JS, CSS, Python, SQL, etc.)
 - **Resume Conversation Auto-Click**: Automatically continues when hitting 25 tool call limit
+- **Connection Failure Support**: Auto-clicks Resume/Try again during connection issues
 - **Zero Interruption**: Works silently in background maintaining development flow
 
 ### 📊 Advanced Analytics  
@@ -31,6 +33,7 @@ This advanced script automatically clicks "Accept", "Accept All", "Run", "Resume
   - 🟢 **Accept/Accept All**: Standard file acceptances 
   - 🟠 **Run/Run Command**: Command executions
   - 🔵 **Resume Conversation**: Session continuations  
+  - 🔴 **Connection Resume/Try Again**: Connection failure recovery
   - 🟣 **Apply/Execute**: Other actions
 - **File Change Tracking**: Lines added/deleted per file with timestamps
 - **Conversation Analysis**: Diff block detection and development progress monitoring
@@ -58,12 +61,12 @@ This advanced script automatically clicks "Accept", "Accept All", "Run", "Resume
 ## 🚀 Installation
 
 ### Method 1: Copy & Paste (Recommended)
-1. Copy entire content from `cursor-auto-accept-simple.js`
-2. Open Cursor → **Help** → **Toggle Developer Tools** 
+1. Copy entire content from `cursor-auto-accept-simple.js` (or use minified `cursor-auto-accept-simple.min.js`)
+2. Open **Cursor** or **Windsurf** → **Help** → **Toggle Developer Tools** 
 3. Go to **Console** tab
 4. Type `allow pasting` and press Enter (if prompted)
 5. Paste script content and press Enter
-6. Script loads with `[autoAcceptAndAnalytics] SCRIPT LOADED AND ACTIVE!` message
+6. Script loads with `[autoAcceptAndAnalytics] SCRIPT LOADED AND ACTIVE! (IDE detected)` message
 
 This is important step (STEP 4 above)
 ![](allowpasting.png)
@@ -73,6 +76,14 @@ This is important step (STEP 4 above)
 
 ### Method 3: Bookmarklet
 Create browser bookmark with script content for easy loading.
+
+### Method 4: Minified Version
+For faster loading, use the professionally minified version:
+1. Use `cursor-auto-accept-simple.min.js` instead of the full version
+2. **53%+ smaller file size** (133KB → 62KB) for faster loading
+3. **Terser-optimized** with preserved function names and syntax validation
+4. Same functionality, professionally compressed
+5. Rebuild with `npm run build` or `node build.js` after making changes
 
 ## 📖 Usage Guide
 
@@ -106,7 +117,7 @@ enableAll()
 disableAll()
 ```
 
-**Supported Types**: `accept`, `acceptAll`, `run`, `runCommand`, `apply`, `execute`, `resume`
+**Supported Types**: `accept`, `acceptAll`, `run`, `runCommand`, `apply`, `execute`, `resume`, `connectionResume`, `tryAgain`
 
 ### 📊 Analytics & Data
 ```javascript
@@ -209,6 +220,93 @@ calibrateWorkflow(25, 100) // 25s manual, 100ms automated
 // Enable/disable resume functionality
 enableButton('resume')
 disableButton('resume')
+```
+
+## 🌐 Connection Failure Support
+
+### Automatic Connection Recovery
+- **Connection Failed Detection**: Automatically detects connection failure dropdowns
+- **Auto-Click Resume/Try Again**: Finds and clicks connection recovery buttons
+- **Internet/VPN Issues**: Handles "check your internet connection or VPN" scenarios
+- **Seamless Recovery**: Maintains workflow during network interruptions
+- **Separate Analytics**: Tracks connection recovery actions with red color coding
+
+### Supported Connection Scenarios
+- **Slow Internet**: Auto-clicks "Resume" when connection is slow
+- **No Internet**: Auto-clicks "Try again" when connection fails
+- **VPN Issues**: Handles VPN-related connection problems
+- **Network Timeouts**: Automatically retries failed requests
+
+### Technical Implementation
+```javascript
+// Target elements for connection failure detection
+'.bg-dropdown-background' // Connection failure dropdown containers
+'.anysphere-secondary-button' // Resume/Try again buttons
+
+// Enable/disable connection failure support
+enableButton('connectionResume')
+enableButton('tryAgain')
+disableButton('connectionResume')
+disableButton('tryAgain')
+```
+
+### Configuration Control
+```javascript
+// Enable only connection failure buttons
+enableOnly(['connectionResume', 'tryAgain'])
+
+// Check current configuration
+acceptStatus()
+```
+
+## 🔄 Multi-IDE Support
+
+### Automatic IDE Detection
+- **Smart Detection**: Automatically detects whether running in Cursor or Windsurf
+- **Adaptive Selectors**: Uses IDE-specific DOM selectors and button patterns
+- **Seamless Experience**: Same functionality across both IDEs
+- **Debug Information**: Shows detected IDE in startup message and logs
+
+### Supported IDEs
+- **Cursor IDE**: Full support with original selectors and patterns
+- **Windsurf IDE**: Complete support with Windsurf-specific class detection
+- **Automatic Fallback**: Global button search if IDE detection fails
+
+### IDE-Specific Features
+
+#### Cursor IDE
+- Uses `div.full-input-box` as anchor point
+- Targets `.anysphere-*` button classes
+- Supports `.composer-code-block-container` file detection
+
+#### Windsurf IDE  
+- Uses `.bg-ide-editor-background` containers
+- Targets `.bg-ide-button-background` and `.text-ide-button-color` classes
+- Supports both `button` and `span` clickable elements
+
+### Technical Implementation
+```javascript
+// IDE detection method
+detectIDE() {
+    // Checks for IDE-specific DOM elements and classes
+    // Returns 'cursor' or 'windsurf'
+}
+
+// IDE-specific button detection
+if (this.ideType === 'windsurf') {
+    return this.isWindsurfAcceptButton(element);
+} else {
+    return this.isCursorAcceptButton(element);
+}
+```
+
+### Debug IDE Detection
+```javascript
+// Check detected IDE
+console.log(globalThis.simpleAccept.ideType);
+
+// Enable debug mode to see IDE-specific detection logs
+enableDebug()
 ```
 
 ## 📁 Universal File Detection
@@ -415,6 +513,7 @@ calibrateWorkflow(25, 100)       // Custom manual + automated timing
 - 🟢 **Accept/Accept All**: `#4CAF50` (Green)
 - 🟠 **Run/Run Command**: `#FF9800` (Orange)  
 - 🔵 **Resume Conversation**: `#2196F3` (Blue)
+- 🔴 **Connection Resume/Try Again**: `#FF5722` (Orange-Red)
 - 🟣 **Apply/Execute**: `#9C27B0` (Purple)
 
 ## 📈 Performance & Impact

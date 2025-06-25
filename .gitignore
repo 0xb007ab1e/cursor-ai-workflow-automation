@@ -1,0 +1,12 @@
+node_modules
+./dist
+./build
+./coverage
+./dist
+./build
+./coverage
+./dist
+./build
+./coverage
+
+cursor_instruction.txt

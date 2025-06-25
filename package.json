@@ -1,0 +1,36 @@
+{
+  "name": "cursor-auto-accept-script",
+  "version": "2.1.0",
+  "description": "Auto-clicks Accept/Run/Apply buttons in Cursor and Windsurf IDEs with comprehensive analytics",
+  "main": "cursor-auto-accept-simple.js",
+  "scripts": {
+    "build": "node build.js",
+    "minify": "node build.js",
+    "install-deps": "npm install terser"
+  },
+  "keywords": [
+    "cursor",
+    "windsurf",
+    "ide",
+    "automation",
+    "ai",
+    "productivity",
+    "analytics"
+  ],
+  "author": "Valsaraj R (@ivalsaraj)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ivalsaraj/true-yolo-cursor-auto-click"
+  },
+  "files": [
+    "cursor-auto-accept-simple.js",
+    "cursor-auto-accept-simple.min.js",
+    "build.js",
+    "README.md",
+    "INSTALLATION.md"
+  ],
+  "dependencies": {
+    "terser": "^5.42.0"
+  }
+}

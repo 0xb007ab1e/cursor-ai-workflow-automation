@@ -242,3 +242,178 @@ getContext()    // Check conversation analysis
 - Proper documentation of troubleshooting procedures
 - Clear explanation of ROI methodology and time savings calculations
 - Complete feature overview helps users understand full script potential 
+
+## [2024-12-27] Added Connection Failure Button Support
+
+### Changes Made:
+- **Added Connection Failure Detection**: Extended script to automatically click "Resume" and "Try again" buttons that appear during connection failures
+- **New Configuration Options**: Added `enableConnectionResume` and `enableTryAgain` config options with UI checkboxes
+- **Enhanced Button Detection**: Added `findConnectionFailureButtons()` method to search for buttons in connection failure dropdowns
+- **Dropdown Container Detection**: Targets `.bg-dropdown-background` containers with connection failure text
+- **Smart Text Matching**: Detects dropdowns containing "connection failed", "check your internet", or "vpn" text
+- **Button Type Analytics**: Added separate tracking for connection failure buttons with orange-red color coding (#FF5722)
+- **ROI Tracking**: Added time savings calculations for connection failure buttons (4s for Resume, 3s for Try again)
+- **Updated UI**: Added "Connection Resume" and "Try Again" checkboxes to control panel configuration
+
+### Technical Implementation:
+- **Target Selectors**: 
+  ```javascript
+  // Dropdown containers
+  '.bg-dropdown-background', '[class*="dropdown"]', '[class*="fade-in"]'
+  
+  // Button selectors within dropdowns
+  '.anysphere-secondary-button', '.anysphere-text-button', '[class*="button"]'
+  ```
+- **Text Detection**: Searches for "Resume" and "Try again" button text within connection failure dropdowns
+- **Configuration Integration**: Seamlessly integrated with existing enable/disable/toggle commands
+- **Analytics Integration**: Separate tracking with `connection-resume` and `try-again` normalized types
+
+### UI/UX Improvements:
+- Connection failure buttons tracked separately in Analytics tab with 🔴 orange-red color coding
+- Enhanced click logging shows connection recovery actions with 🔄 icon
+- Configuration checkboxes allow granular control over connection failure support
+- Time savings calculations account for extra frustration time during connection issues
+
+### Global Commands:
+```javascript
+// Enable/disable connection failure support
+enableButton('connectionResume')
+enableButton('tryAgain')
+disableButton('connectionResume')
+disableButton('tryAgain')
+
+// Enable only connection failure buttons
+enableOnly(['connectionResume', 'tryAgain'])
+```
+
+### Benefits:
+- **Seamless Network Recovery**: Automatically handles connection interruptions without user intervention
+- **Reduced Frustration**: Eliminates manual clicking during network issues
+- **Workflow Continuity**: Maintains development momentum during connection problems
+- **Comprehensive Coverage**: Handles slow internet, no internet, and VPN-related issues
+- **Detailed Analytics**: Separate tracking helps identify network-related productivity impacts
+
+### Reasoning:
+- Users frequently encounter connection issues during long coding sessions
+- Manual clicking of connection recovery buttons interrupts workflow
+- Network issues are particularly frustrating and time-consuming
+- Automating connection recovery maintains focus on actual development work
+- Separate analytics help identify patterns in connection reliability
+
+## [2024-12-27] Added Multi-IDE Support and Build System
+
+### Changes Made:
+- **Multi-IDE Support**: Added automatic detection and support for both Cursor and Windsurf IDEs
+- **IDE Detection**: Implemented `detectIDE()` method that analyzes DOM elements and classes to identify the IDE
+- **Windsurf Integration**: Added Windsurf-specific button detection with `.bg-ide-button-background` and `.text-ide-button-color` classes
+- **Adaptive Selectors**: Different button finding strategies for each IDE with fallback to global search
+- **Build System**: Created `build.js` script for minifying the main script file
+- **Minification**: Generates `cursor-auto-accept-simple.min.js` with 50%+ size reduction
+- **Enhanced Startup**: Shows detected IDE in startup message and notifications
+
+### Technical Implementation:
+- **IDE Detection Logic**:
+  ```javascript
+  // Windsurf indicators
+  'bg-ide-editor-background', 'bg-ide-button-background', 'text-ide-button-color'
+  
+  // Cursor indicators  
+  'div.full-input-box', '.composer-code-block-container', '.anysphere-text-button'
+  ```
+- **Windsurf Button Selectors**:
+  ```javascript
+  'button[class*="bg-ide-button-background"]'
+  'span[class*="cursor-pointer"]'
+  '[class*="hover:bg-ide-button-hover-background"]'
+  ```
+- **Build Script Features**:
+  - Comment removal and whitespace compression
+  - 50%+ file size reduction (133.5KB → 65.9KB)
+  - Automatic compression ratio calculation
+  - Header with build information
+
+### UI/UX Improvements:
+- Startup message shows detected IDE: `[autoAcceptAndAnalytics] SCRIPT LOADED AND ACTIVE! (WINDSURF IDE detected)`
+- Visual notification includes IDE type in parentheses
+- Debug logging shows IDE-specific detection attempts
+- Seamless experience across both IDEs with same functionality
+
+### Global Commands:
+```javascript
+// Check detected IDE
+console.log(globalThis.simpleAccept.ideType);
+
+// Debug IDE-specific detection
+enableDebug()
+
+// Build minified version
+node build.js
+```
+
+### Benefits:
+- **Universal Compatibility**: Works seamlessly in both Cursor and Windsurf IDEs
+- **Automatic Adaptation**: No manual configuration needed for different IDEs
+- **Faster Loading**: Minified version loads 50% faster
+- **Future-Proof**: Extensible architecture for adding more IDEs
+- **Better Debugging**: IDE-specific logging helps troubleshoot issues
+
+### Reasoning:
+- Users work with multiple AI-powered IDEs and need consistent automation
+- Windsurf has different DOM structure and class names than Cursor
+- Automatic detection eliminates need for manual IDE selection
+- Minified version improves loading performance for frequent use
+- Separate detection methods ensure optimal button finding for each IDE
+
+## [2024-12-28] Fixed Windsurf "Run Command" Accept Detection
+
+### Changes Made:
+- **Enhanced Click Simulation**: Added `pointerdown`, `mousedown`, `mouseup`, and `pointerup` dispatches inside `clickElement()` before/after the existing `click` event to fully emulate a human click sequence.
+- **Compatibility Patch**: Ensures Windsurf's "Run command? → Accept" buttons (which rely on pointer events) are now recognised and triggered by the script.
+- **Non-Breaking**: Original focus/keyboard fallback preserved; existing Cursor and Windsurf features remain untouched.
+
+### Technical Implementation:
+```javascript
+// Inside clickElement()
+const pointerDown = new PointerEvent('pointerdown', {/* coord data */});
+const mouseDown   = new MouseEvent('mousedown', {/* coord data */});
+// element.click(); // existing
+const mouseUp     = new MouseEvent('mouseup', {/* coord data */});
+const pointerUp   = new PointerEvent('pointerup', {/* coord data */});
+```
+
+### Reasoning:
+- Windsurf's command confirmation UI attaches handlers to pointer down/up events, so the previous simple `click()` call was insufficient.
+- Injecting the full pointer/mouse event lifecycle guarantees activation across all interactive elements without affecting previously functional features.
+
+### Impact:
+- **Run Command Automation Restored**: The script now reliably accepts terminal command suggestions in Windsurf.
+- **Broader Robustness**: The enhanced event sequence improves compatibility with any future UI components that rely on pointer events.
+
+## [2024-12-28] Enhanced Windsurf "Accept All" File Changes Detection
+
+### Changes Made:
+- **Enhanced Selectors**: Added more specific CSS selectors for Windsurf's file changes "Accept all" UI, including `span.hover:bg-ide-button-hover-background.cursor-pointer.select-none.rounded-sm.bg-ide-button-background`.
+- **Improved Class Detection**: Extended `isWindsurfAcceptButton()` to recognize additional Windsurf-specific classes like `hover:bg-ide-button-hover-background`, `hover:text-ide-button-hover-color`, and `select-none`.
+- **Reject Button Prevention**: Added explicit check to skip "Reject all" buttons to prevent accidental clicks.
+- **Enhanced Debug Logging**: Added detailed logging when Windsurf buttons are found to help troubleshoot detection.
+
+### Technical Implementation:
+```javascript
+// Enhanced selectors in findWindsurfButtons()
+'span.hover\\:bg-ide-button-hover-background.cursor-pointer.select-none.rounded-sm.bg-ide-button-background',
+'span[class*="hover:text-ide-button-hover-color"]',
+'span[class*="hover:bg-ide-button-hover-background"]'
+
+// Reject button exclusion in isWindsurfAcceptButton()
+if (text.includes('reject')) return false;
+```
+
+### Reasoning:
+- Windsurf's file changes UI uses `<span>` elements with specific hover and styling classes for "Accept all" buttons.
+- The previous selectors were too generic and missed the specific combination of classes used in the file changes toolbar.
+- Excluding reject buttons prevents accidental rejection of file changes.
+
+### Impact:
+- **File Changes Automation**: Script now reliably detects and clicks "Accept all" in Windsurf's file changes UI.
+- **Better Detection**: More robust pattern matching for various Windsurf UI components.
+- **Safer Operation**: Explicit rejection of "Reject all" buttons prevents unwanted actions.

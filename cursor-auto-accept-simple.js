@@ -18,6 +18,10 @@
                 this.loggedMessages = new Set(); // Track logged messages to prevent duplicates
                 this.debugMode = false; // Control debug logging
                 
+                // IDE Detection
+                this.ideType = this.detectIDE();
+                this.log(`Detected IDE: ${this.ideType}`);
+                
                 // File analytics tracking
                 this.analytics = {
                     files: new Map(), // filename -> { acceptCount, lastAccepted, addedLines, deletedLines }
@@ -52,7 +56,9 @@
                     enableRunCommand: true,
                     enableApply: true,
                     enableExecute: true,
-                    enableResume: true
+                    enableResume: true,
+                    enableConnectionResume: true,  // New: Resume button in connection failure dropdown
+                    enableTryAgain: true           // New: Try again button in connection failure dropdown
                 };
                 
                 // Load persisted data
@@ -198,6 +204,72 @@
                 this.logToPanel(`Debug mode ${this.debugMode ? 'ON' : 'OFF'}`, 'info');
                 return this.debugMode;
             }
+
+            // Detect which IDE we're running in
+            detectIDE() {
+                try {
+                    // Check for Windsurf-specific elements and classes
+                    const windsurfIndicators = [
+                        'bg-ide-editor-background',
+                        'bg-ide-button-background', 
+                        'text-ide-button-color',
+                        'hover:bg-ide-button-hover-background'
+                    ];
+                    
+                    // Check for Cursor-specific elements
+                    const cursorIndicators = [
+                        'div.full-input-box',
+                        '.composer-code-block-container',
+                        '.anysphere-text-button',
+                        '.anysphere-secondary-button'
+                    ];
+                    
+                    // Look for Windsurf indicators in the DOM
+                    let windsurfScore = 0;
+                    let cursorScore = 0;
+                    
+                    // Check for Windsurf class patterns in stylesheets and elements
+                    windsurfIndicators.forEach(indicator => {
+                        if (document.querySelector(`[class*="${indicator}"]`) || 
+                            document.body.innerHTML.includes(indicator)) {
+                            windsurfScore++;
+                        }
+                    });
+                    
+                    // Check for Cursor-specific selectors
+                    cursorIndicators.forEach(selector => {
+                        if (document.querySelector(selector)) {
+                            cursorScore++;
+                        }
+                    });
+                    
+                    // Check URL and title for additional clues
+                    const url = window.location.href.toLowerCase();
+                    const title = document.title.toLowerCase();
+                    
+                    if (url.includes('windsurf') || title.includes('windsurf')) {
+                        windsurfScore += 2;
+                    }
+                    
+                    if (url.includes('cursor') || title.includes('cursor')) {
+                        cursorScore += 2;
+                    }
+                    
+                    // Determine IDE based on scores
+                    if (windsurfScore > cursorScore) {
+                        return 'windsurf';
+                    } else if (cursorScore > 0) {
+                        return 'cursor';
+                    } else {
+                        // Default to cursor if uncertain
+                        return 'cursor';
+                    }
+                    
+                } catch (error) {
+                    this.log(`IDE detection error: ${error.message}`);
+                    return 'cursor'; // Default fallback
+                }
+            }
             
             calibrateWorkflowTimes(manualWorkflowSeconds, automatedWorkflowMs = 100) {
                 const oldManual = this.roiTracking.averageCompleteWorkflow;
@@ -256,7 +328,9 @@
                     'run': this.roiTracking.averageCompleteWorkflow + 2000, // extra caution for running commands
                     'execute': this.roiTracking.averageCompleteWorkflow + 2000,
                     'apply': this.roiTracking.averageCompleteWorkflow,
-                    'resume': this.roiTracking.averageCompleteWorkflow + 3000 // time saved by auto-resuming conversation
+                    'resume': this.roiTracking.averageCompleteWorkflow + 3000, // time saved by auto-resuming conversation
+                    'connection-resume': this.roiTracking.averageCompleteWorkflow + 4000, // extra time for connection issues
+                    'try again': this.roiTracking.averageCompleteWorkflow + 3000 // time saved by auto-retrying
                 };
                 
                 const manualTime = workflowTimeSavings[buttonType.toLowerCase()] || this.roiTracking.averageCompleteWorkflow;
@@ -635,7 +709,9 @@
                 if (type.includes('run')) return 'run';
                 if (type.includes('apply')) return 'apply';
                 if (type.includes('execute')) return 'execute';
-                if (type.includes('resume')) return 'resume-conversation';
+                if (type.includes('resume') && type.includes('conversation')) return 'resume-conversation';
+                if (type.includes('resume')) return 'connection-resume'; // Connection failure resume
+                if (type.includes('try again')) return 'try-again';
                 
                 return type;
             }
@@ -741,7 +817,9 @@
                     { id: 'aa-accept', text: 'Accept', checked: true },
                     { id: 'aa-run', text: 'Run', checked: true },
                     { id: 'aa-apply', text: 'Apply', checked: true },
-                    { id: 'aa-resume', text: 'Resume Conversation', checked: true }
+                    { id: 'aa-resume', text: 'Resume Conversation', checked: true },
+                    { id: 'aa-connection-resume', text: 'Connection Resume', checked: true },
+                    { id: 'aa-try-again', text: 'Try Again', checked: true }
                 ];
                 
                 configOptions.forEach(option => {
@@ -987,6 +1065,8 @@
                             valueSpan.style.color = '#FF9800';
                         } else if (type === 'resume-conversation') {
                             valueSpan.style.color = '#2196F3';
+                        } else if (type === 'connection-resume' || type === 'try-again') {
+                            valueSpan.style.color = '#FF5722'; // Orange-red for connection issues
                         } else {
                             valueSpan.style.color = '#9C27B0';
                         }
@@ -1758,13 +1838,18 @@
                             'aa-accept': 'enableAccept',
                             'aa-run': 'enableRun',
                             'aa-apply': 'enableApply',
-                            'aa-resume': 'enableResume'
+                            'aa-resume': 'enableResume',
+                            'aa-connection-resume': 'enableConnectionResume',
+                            'aa-try-again': 'enableTryAgain'
                         };
                         const configKey = configMap[checkbox.id];
                         if (configKey) {
                             this.config[configKey] = checkbox.checked;
                             this.config.enableRunCommand = this.config.enableRun;
                             this.config.enableExecute = this.config.enableApply;
+                            
+                            // Save configuration changes
+                            this.saveToStorage();
                         }
                     });
                 });
@@ -1850,30 +1935,57 @@
             findAcceptButtons() {
                 const buttons = [];
                 
-                // Find the input box
-                const inputBox = document.querySelector('div.full-input-box');
-                if (!inputBox) {
-                    this.log('Input box not found');
-                    return buttons;
+                // IDE-specific input box selectors
+                let inputBox = null;
+                
+                if (this.ideType === 'windsurf') {
+                    // Windsurf doesn't have a specific input box, look for button containers directly
+                    inputBox = document.querySelector('.flex.w-full.items-center.justify-between') ||
+                              document.querySelector('[class*="bg-ide-editor-background"]') ||
+                              document.querySelector('.flex.flex-row.gap-x-1');
+                } else {
+                    // Cursor IDE
+                    inputBox = document.querySelector('div.full-input-box');
                 }
                 
-                // Check previous sibling elements for regular buttons
-                let currentElement = inputBox.previousElementSibling;
-                let searchDepth = 0;
-                
-                while (currentElement && searchDepth < 5) {
-                    // Look for any clickable elements containing "Accept" text
-                    const acceptElements = this.findAcceptInElement(currentElement);
-                    buttons.push(...acceptElements);
+                if (!inputBox) {
+                    if (this.debugMode) {
+                        this.log(`${this.ideType} input container not found`);
+                    }
                     
-                    currentElement = currentElement.previousElementSibling;
-                    searchDepth++;
+                    // Fallback: search entire document for buttons
+                    return this.findButtonsGlobally();
+                }
+                
+                if (this.ideType === 'windsurf') {
+                    // For Windsurf, search the entire document for button patterns
+                    const windsurfButtons = this.findWindsurfButtons();
+                    buttons.push(...windsurfButtons);
+                } else {
+                    // Cursor IDE - check previous sibling elements for regular buttons
+                    let currentElement = inputBox.previousElementSibling;
+                    let searchDepth = 0;
+                    
+                    while (currentElement && searchDepth < 5) {
+                        // Look for any clickable elements containing "Accept" text
+                        const acceptElements = this.findAcceptInElement(currentElement);
+                        buttons.push(...acceptElements);
+                        
+                        currentElement = currentElement.previousElementSibling;
+                        searchDepth++;
+                    }
                 }
 
                 // Also search for Resume Conversation links in message bubbles if enabled
                 if (this.config.enableResume) {
                     const resumeLinks = this.findResumeLinks();
                     buttons.push(...resumeLinks);
+                }
+
+                // Search for connection failure buttons (Resume/Try again in dropdowns)
+                if (this.config.enableConnectionResume || this.config.enableTryAgain) {
+                    const connectionButtons = this.findConnectionFailureButtons();
+                    buttons.push(...connectionButtons);
                 }
                 
                 return buttons;
@@ -1923,6 +2035,12 @@
                     return true;
                 }
                 
+                // Use IDE-specific detection
+                if (this.ideType === 'windsurf') {
+                    return this.isWindsurfAcceptButton(element);
+                }
+                
+                // Cursor IDE detection (original logic)
                 const text = element.textContent.toLowerCase().trim();
                 
                 // Check each pattern based on configuration
@@ -1933,7 +2051,8 @@
                     { pattern: 'run', enabled: this.config.enableRun },
                     { pattern: 'apply', enabled: this.config.enableApply },
                     { pattern: 'execute', enabled: this.config.enableExecute },
-                    { pattern: 'resume', enabled: this.config.enableResume }
+                    { pattern: 'resume', enabled: this.config.enableResume || this.config.enableConnectionResume },
+                    { pattern: 'try again', enabled: this.config.enableTryAgain }
                 ];
                 
                 // Check if text matches any enabled pattern
@@ -2005,6 +2124,32 @@
                         this.log(`DEBUG: Element position: x=${x}, y=${y}`);
                     }
                     
+                    // Extra event sequence: some Windsurf UI elements (e.g., "Run command" Accept)
+                    // listen to pointer or mouse down/up rather than a plain click. Dispatch a
+                    // full down → up cycle before our standard click strategy to guarantee the
+                    // event handler stack is triggered across all IDE variants.
+                    try {
+                        const pointerDown = new PointerEvent('pointerdown', {
+                            bubbles: true,
+                            cancelable: true,
+                            view: window,
+                            clientX: x,
+                            clientY: y,
+                            pointerType: 'mouse'
+                        });
+                        element.dispatchEvent(pointerDown);
+                    } catch (_) {
+                        // PointerEvent may not be supported in some environments – safe to ignore.
+                    }
+                    const mouseDown = new MouseEvent('mousedown', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window,
+                        clientX: x,
+                        clientY: y
+                    });
+                    element.dispatchEvent(mouseDown);
+                    
                     // Strategy 1: Direct click
                     element.click();
                     
@@ -2018,7 +2163,30 @@
                     });
                     element.dispatchEvent(mouseEvent);
                     
-                    // Strategy 3: Focus and Enter (for buttons and interactive elements)
+                    // Complete the event cycle with up events to mirror real user interaction.
+                    const mouseUp = new MouseEvent('mouseup', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window,
+                        clientX: x,
+                        clientY: y
+                    });
+                    element.dispatchEvent(mouseUp);
+                    try {
+                        const pointerUp = new PointerEvent('pointerup', {
+                            bubbles: true,
+                            cancelable: true,
+                            view: window,
+                            clientX: x,
+                            clientY: y,
+                            pointerType: 'mouse'
+                        });
+                        element.dispatchEvent(pointerUp);
+                    } catch (_) {
+                        // Ignore if PointerEvent unsupported.
+                    }
+                    
+                    // Strategy 3: Focus and Enter (retain original behaviour)
                     if (element.focus) element.focus();
                     const enterEvent = new KeyboardEvent('keydown', {
                         key: 'Enter',
@@ -2040,6 +2208,42 @@
                             this.analytics.buttonTypeCounts = {};
                         }
                         this.analytics.buttonTypeCounts['resume-conversation'] = (this.analytics.buttonTypeCounts['resume-conversation'] || 0) + 1;
+                        
+                        // Update totals
+                        this.analytics.totalAccepts++;
+                        this.roiTracking.totalTimeSaved += timeSaved;
+                        
+                        // Save to storage
+                        this.saveToStorage();
+                    } else if (buttonText === 'resume' && !isResumeLink) {
+                        // Handle connection failure Resume button
+                        const timeSaved = this.calculateTimeSaved('connection-resume');
+                        this.logToPanel(`🔄 Connection Resume clicked [saved ${this.formatTimeDuration(timeSaved)}]`, 'info');
+                        this.log(`Connection Resume clicked - Time saved: ${this.formatTimeDuration(timeSaved)}`);
+                        
+                        // Track button type count
+                        if (!this.analytics.buttonTypeCounts) {
+                            this.analytics.buttonTypeCounts = {};
+                        }
+                        this.analytics.buttonTypeCounts['connection-resume'] = (this.analytics.buttonTypeCounts['connection-resume'] || 0) + 1;
+                        
+                        // Update totals
+                        this.analytics.totalAccepts++;
+                        this.roiTracking.totalTimeSaved += timeSaved;
+                        
+                        // Save to storage
+                        this.saveToStorage();
+                    } else if (buttonText === 'try again') {
+                        // Handle Try again button
+                        const timeSaved = this.calculateTimeSaved('try again');
+                        this.logToPanel(`🔄 Try Again clicked [saved ${this.formatTimeDuration(timeSaved)}]`, 'info');
+                        this.log(`Try Again clicked - Time saved: ${this.formatTimeDuration(timeSaved)}`);
+                        
+                        // Track button type count
+                        if (!this.analytics.buttonTypeCounts) {
+                            this.analytics.buttonTypeCounts = {};
+                        }
+                        this.analytics.buttonTypeCounts['try-again'] = (this.analytics.buttonTypeCounts['try-again'] || 0) + 1;
                         
                         // Update totals
                         this.analytics.totalAccepts++;
@@ -2267,7 +2471,7 @@
             findResumeLinks() {
                 const resumeLinks = [];
                 
-                // Look for Resume Conversation links in markdown content
+                // Look for Resume Conversation markdown links
                 const resumeSelectors = [
                     '.markdown-link[data-link="command:composer.resumeCurrentChat"]',
                     '.markdown-link[data-link*="resume"]',
@@ -2275,15 +2479,67 @@
                 ];
                 
                 for (const selector of resumeSelectors) {
-                    const links = document.querySelectorAll(selector);
-                    for (const link of links) {
-                        if (this.isResumeLink(link)) {
-                            resumeLinks.push(link);
+                    const elements = document.querySelectorAll(selector);
+                    for (const element of elements) {
+                        if (this.isElementVisible(element) && this.isElementClickable(element)) {
+                            resumeLinks.push(element);
                         }
                     }
                 }
                 
                 return resumeLinks;
+            }
+
+            // New method: Find connection failure buttons (Resume/Try again in dropdowns)
+            findConnectionFailureButtons() {
+                const buttons = [];
+                
+                // Look for connection failure dropdown containers
+                const dropdownSelectors = [
+                    '.bg-dropdown-background',
+                    '[class*="dropdown"]',
+                    '[class*="fade-in"]'
+                ];
+                
+                for (const selector of dropdownSelectors) {
+                    const dropdowns = document.querySelectorAll(selector);
+                    
+                    for (const dropdown of dropdowns) {
+                        // Check if this dropdown contains connection failure text
+                        const text = dropdown.textContent.toLowerCase();
+                        if (text.includes('connection failed') || 
+                            text.includes('check your internet') || 
+                            text.includes('vpn')) {
+                            
+                            // Look for Resume and Try again buttons within this dropdown
+                            const buttonSelectors = [
+                                '.anysphere-secondary-button',
+                                '.anysphere-text-button',
+                                '[class*="button"]',
+                                '[style*="cursor: pointer"]'
+                            ];
+                            
+                            for (const btnSelector of buttonSelectors) {
+                                const dropdownButtons = dropdown.querySelectorAll(btnSelector);
+                                
+                                for (const btn of dropdownButtons) {
+                                    const btnText = btn.textContent.toLowerCase().trim();
+                                    
+                                    // Check for Resume or Try again buttons
+                                    if ((btnText === 'resume' && this.config.enableConnectionResume) ||
+                                        (btnText === 'try again' && this.config.enableTryAgain)) {
+                                        
+                                        if (this.isElementVisible(btn) && this.isElementClickable(btn)) {
+                                            buttons.push(btn);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                return buttons;
             }
 
             // Check if element is a Resume Conversation link
@@ -2518,6 +2774,213 @@
                 
                 this.log('=== END CONVERSATION ACTIVITY ===');
             }
+
+            // Windsurf-specific button detection
+            findWindsurfButtons() {
+                const buttons = [];
+                
+                // Search in main document first
+                this.searchWindsurfButtonsInDocument(document, buttons);
+                
+                // Search in iframes (Windsurf often runs in iframe)
+                const iframes = document.querySelectorAll('iframe');
+                for (const iframe of iframes) {
+                    try {
+                        // Check if this is the Windsurf iframe
+                        if (iframe.id === 'windsurf.cascadePanel' || 
+                            iframe.src.includes('windsurf') || 
+                            iframe.src.includes('cascadePanel')) {
+                            
+                            if (this.debugMode) {
+                                this.log(`DEBUG: Found Windsurf iframe: ${iframe.id || iframe.src}`);
+                            }
+                            
+                            // Access iframe document
+                            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                            if (iframeDoc) {
+                                this.searchWindsurfButtonsInDocument(iframeDoc, buttons);
+                                if (this.debugMode) {
+                                    this.log(`DEBUG: Searched iframe document, found ${buttons.length} total buttons so far`);
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        // Cross-origin or access restrictions
+                        if (this.debugMode) {
+                            this.log(`DEBUG: Cannot access iframe content: ${error.message}`);
+                        }
+                    }
+                }
+                
+                return buttons;
+            }
+            
+            // Helper method to search for Windsurf buttons in a specific document
+            searchWindsurfButtonsInDocument(doc, buttons) {
+                // Windsurf button selectors based on the provided HTML
+                const windsurfSelectors = [
+                    // Accept/Reject buttons in command execution
+                    'button.hover\\:bg-ide-button-hover-background.cursor-pointer.rounded.bg-ide-button-background',
+                    'button[class*="bg-ide-button-background"]',
+                    'button[class*="text-ide-button-color"]',
+                    
+                    // Accept all buttons in file changes (enhanced for the specific UI structure)
+                    'span.hover\\:text-ide-button-hover-color.hover\\:bg-ide-button-hover-background.cursor-pointer',
+                    'span[class*="bg-ide-button-background"]',
+                    'span[class*="text-ide-button-color"]',
+                    'span.hover\\:bg-ide-button-hover-background.cursor-pointer.select-none.rounded-sm.bg-ide-button-background',
+                    
+                    // Generic clickable elements with specific Windsurf patterns
+                    '[class*="cursor-pointer"][class*="rounded"]',
+                    '[class*="cursor-pointer"][class*="select-none"]',
+                    'button[class*="transition"]',
+                    'span[class*="cursor-pointer"]',
+                    
+                    // More specific selectors for file changes UI
+                    'span.cursor-pointer.select-none.rounded-sm',
+                    'span[class*="hover:text-ide-button-hover-color"]',
+                    'span[class*="hover:bg-ide-button-hover-background"]'
+                ];
+                
+                for (const selector of windsurfSelectors) {
+                    try {
+                        const elements = doc.querySelectorAll(selector);
+                        for (const element of elements) {
+                            if (this.isWindsurfAcceptButton(element)) {
+                                buttons.push(element);
+                                if (this.debugMode) {
+                                    this.log(`DEBUG: Found Windsurf button in ${doc === document ? 'main document' : 'iframe'}: "${element.textContent.trim()}"`);
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        // Skip invalid selectors
+                        if (this.debugMode) {
+                            this.log(`Windsurf selector error: ${selector} - ${error.message}`);
+                        }
+                    }
+                }
+            }
+
+            // Check if element is a Windsurf accept button
+            isWindsurfAcceptButton(element) {
+                if (!element || !element.textContent) return false;
+                
+                const text = element.textContent.toLowerCase().trim();
+                
+                // Windsurf button patterns (enhanced for file changes UI)
+                const windsurfPatterns = [
+                    { pattern: 'accept all', enabled: this.config.enableAcceptAll },
+                    { pattern: 'accept', enabled: this.config.enableAccept },
+                    { pattern: 'run command', enabled: this.config.enableRunCommand },
+                    { pattern: 'run', enabled: this.config.enableRun },
+                    { pattern: 'apply', enabled: this.config.enableApply },
+                    { pattern: 'execute', enabled: this.config.enableExecute }
+                ];
+                
+                // Check if text matches any enabled pattern
+                const matchesPattern = windsurfPatterns.some(({ pattern, enabled }) => 
+                    enabled && text.includes(pattern)
+                );
+                
+                if (!matchesPattern) return false;
+                
+                // Enhanced Windsurf-specific class checks
+                const hasWindsurfClasses = element.className.includes('bg-ide-button-background') ||
+                                          element.className.includes('text-ide-button-color') ||
+                                          element.className.includes('cursor-pointer') ||
+                                          element.className.includes('hover:bg-ide-button-hover-background') ||
+                                          element.className.includes('hover:text-ide-button-hover-color') ||
+                                          element.className.includes('select-none');
+                
+                if (!hasWindsurfClasses) return false;
+                
+                // Additional check for reject buttons - exclude them
+                if (text.includes('reject')) {
+                    if (this.debugMode) {
+                        this.log(`DEBUG: Skipping reject button: "${text}"`);
+                    }
+                    return false;
+                }
+                
+                const isVisible = this.isElementVisible(element);
+                const isClickable = this.isElementClickable(element);
+                
+                if (this.debugMode && matchesPattern) {
+                    this.log(`DEBUG: Windsurf button found - Text: "${text}", Classes: "${element.className}", Visible: ${isVisible}, Clickable: ${isClickable}`);
+                }
+                
+                return isVisible && isClickable;
+            }
+
+            // Global button search fallback
+            findButtonsGlobally() {
+                const buttons = [];
+                
+                // Search in main document
+                this.searchButtonsInDocument(document, buttons);
+                
+                // Search in iframes
+                const iframes = document.querySelectorAll('iframe');
+                for (const iframe of iframes) {
+                    try {
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        if (iframeDoc) {
+                            this.searchButtonsInDocument(iframeDoc, buttons);
+                            if (this.debugMode) {
+                                this.log(`DEBUG: Searched iframe ${iframe.id || iframe.src} for global buttons`);
+                            }
+                        }
+                    } catch (error) {
+                        // Cross-origin restrictions
+                        if (this.debugMode) {
+                            this.log(`DEBUG: Cannot access iframe for global search: ${error.message}`);
+                        }
+                    }
+                }
+                
+                return buttons;
+            }
+            
+            // Helper method to search for buttons in a specific document
+            searchButtonsInDocument(doc, buttons) {
+                // Combined selectors for both IDEs
+                const globalSelectors = [
+                    // Cursor selectors
+                    'div[class*="button"]',
+                    'button',
+                    '[class*="anysphere"]',
+                    
+                    // Windsurf selectors  
+                    'button[class*="bg-ide-button-background"]',
+                    'span[class*="cursor-pointer"]',
+                    '[class*="hover:bg-ide-button-hover-background"]',
+                    
+                    // Generic selectors
+                    '[class*="cursor-pointer"]',
+                    '[onclick]',
+                    '[style*="cursor: pointer"]'
+                ];
+                
+                for (const selector of globalSelectors) {
+                    try {
+                        const elements = doc.querySelectorAll(selector);
+                        for (const element of elements) {
+                            if (this.isAcceptButton(element)) {
+                                buttons.push(element);
+                                if (this.debugMode) {
+                                    this.log(`DEBUG: Found global button in ${doc === document ? 'main document' : 'iframe'}: "${element.textContent.trim()}"`);
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        // Skip invalid selectors
+                        if (this.debugMode) {
+                            this.log(`Global selector error: ${selector} - ${error.message}`);
+                        }
+                    }
+                }
+            }
         }
         
         globalThis.autoAcceptAndAnalytics = autoAcceptAndAnalytics;
@@ -2580,7 +3043,7 @@
         };
         
         // Force visible startup message
-        const startupMsg = '[autoAcceptAndAnalytics] SCRIPT LOADED AND ACTIVE!';
+        const startupMsg = `[autoAcceptAndAnalytics] SCRIPT LOADED AND ACTIVE! (${globalThis.simpleAccept.ideType.toUpperCase()} IDE detected)`;
         console.log(startupMsg);
         console.info(startupMsg);
         console.warn(startupMsg);
@@ -2588,7 +3051,7 @@
         // Also create visual notification
         try {
             const notification = document.createElement('div');
-            notification.textContent = '✅ AutoAccept Control Panel Ready! Now with File Analytics - Click Analytics tab!';
+            notification.textContent = `✅ AutoAccept Control Panel Ready! (${globalThis.simpleAccept.ideType.toUpperCase()}) - Click Analytics tab!`;
             notification.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#4CAF50;color:white;padding:10px 20px;border-radius:5px;z-index:99999;font-weight:bold;max-width:400px;text-align:center;';
             document.body.appendChild(notification);
             setTimeout(() => notification.remove(), 4000);
@@ -2602,6 +3065,6 @@
         console.log('Calibration: calibrateWorkflow(manualSeconds, autoMs) - Adjust workflow timing');
         console.log('Config: enableOnly([types]), enableAll(), disableAll(), toggleButton(type)');
         console.log('Conversation: findDiffs(), getContext(), logActivity(), recentDiffs(maxAge)');
-        console.log('Types: "acceptAll", "accept", "run", "runCommand", "apply", "execute", "resume"');
+        console.log('Types: "acceptAll", "accept", "run", "runCommand", "apply", "execute", "resume", "connectionResume", "tryAgain"');
     }
 })(); 

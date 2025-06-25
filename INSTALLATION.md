@@ -14,7 +14,8 @@
 3. You should now see a prompt like `>`
 
 ### Step 3: Install Script
-1. Copy the entire contents of [`cursor-auto-accept-simple.js`](cursor-auto-accept-simple.js)
+1. Copy the entire contents of [`cursor-auto-accept-simple.js`](cursor-auto-accept-simple.js) 
+   - Or use the minified version [`cursor-auto-accept-simple.min.js`](cursor-auto-accept-simple.min.js) for faster loading
 2. Paste it into the console
 3. Press **Enter**
 
@@ -22,10 +23,11 @@
 
 You should see this output:
 ```
-[SimpleAutoAccept] Ready with full control!
-Commands: startAccept(), stopAccept(), acceptStatus(), debugAccept()
-Config: enableOnly([types]), enableAll(), disableAll(), toggleButton(type)
-Types: "acceptAll", "accept", "run", "runCommand", "apply", "execute"
+[autoAcceptAndAnalytics] SCRIPT LOADED AND ACTIVE! (CURSOR IDE detected)
+```
+Or for Windsurf:
+```
+[autoAcceptAndAnalytics] SCRIPT LOADED AND ACTIVE! (WINDSURF IDE detected)
 ```
 
 ## 🎯 First Test
@@ -57,9 +59,17 @@ You should see something like:
 - If you restart Cursor, you'll need to reinstall the script
 - Use `stopAccept()` to pause and `startAccept()` to resume
 
+## 🔨 Build from Source
+
+If you want to modify the script:
+1. Make changes to `cursor-auto-accept-simple.js`
+2. Run `npm run build` or `node build.js` to create minified version
+3. Use the generated `cursor-auto-accept-simple.min.js`
+
 ## 🆘 Need Help?
 
 If something doesn't work:
 1. Run `debugAccept()` to see what the script detects
-2. Check the [troubleshooting section](README.md#-troubleshooting) in the main README
-3. Open an issue with your console output 
+2. Check detected IDE with `console.log(globalThis.simpleAccept.ideType)`
+3. Check the [troubleshooting section](README.md#-troubleshooting) in the main README
+4. Open an issue with your console output 

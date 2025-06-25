@@ -1,12 +1,15 @@
 # Knowledge Summary - Cursor Auto-Accept Script
 
 ## What It Does
-Auto-clicks Accept/Run/Apply/Resume buttons in Cursor IDE. Tracks files, analyzes conversation diffs, and calculates ROI from complete AI workflow. Now with accurate file detection and separated button analytics.
+Auto-clicks Accept/Run/Apply/Resume buttons in Cursor and Windsurf IDEs. Tracks files, analyzes conversation diffs, and calculates ROI from complete AI workflow. Now with accurate file detection, separated button analytics, connection failure support, and multi-IDE compatibility.
 
 ## Key Features
-- Smart button detection and clicking (including Resume Conversation)
+- Smart button detection and clicking (including Resume Conversation and Connection Failure buttons)
+- **Multi-IDE support** with automatic detection for Cursor and Windsurf
 - **Universal file detection** from conversation context (any file type)
 - **Separated button type analytics** with color coding
+- **Connection failure support** for Resume/Try again buttons during network issues
+- **Build system** for creating minified versions
 - Diff block detection and conversation analysis
 - ROI calculation from user prompt → cursor completion
 - Data persists in localStorage
@@ -106,6 +109,7 @@ recentDiffs(maxAge)     // Find recent diffs (ms)
 - **Accept/Accept All**: Green (#4CAF50) - Standard file acceptances
 - **Run/Run Command**: Orange (#FF9800) - Command executions  
 - **Resume Conversation**: Blue (#2196F3) - Session continuations
+- **Connection Resume/Try Again**: Orange-Red (#FF5722) - Connection failure recovery
 - **Apply/Execute**: Purple (#9C27B0) - Other actions
 - Real-time counters in Analytics tab with 🎯 Button Types section
 
@@ -122,4 +126,38 @@ recentDiffs(maxAge)     // Find recent diffs (ms)
 
 ## Renamed Class
 - **SimpleAutoAccept**: Renamed to **autoAcceptAndAnalytics** throughout codebase
+
+## Connection Failure Button Support
+✅ **Auto-Click Connection Recovery**:
+- Detects connection failure dropdowns with "connection failed", "check your internet", or "vpn" text
+- Auto-clicks "Resume" and "Try again" buttons in `.bg-dropdown-background` containers
+- Separate configuration options: `enableConnectionResume` and `enableTryAgain`
+- Orange-red color coding (#FF5722) for connection failure analytics
+- Enhanced time savings: 4s for Resume, 3s for Try again (accounts for frustration time)
+- Seamless integration with existing button detection and analytics systems
+
+connection failure buttons added for slow/no internet scenarios, auto-clicks Resume/Try again in dropdowns, separate analytics tracking with orange-red color
+
+## Multi-IDE Support
+✅ **Automatic IDE Detection**:
+- Detects Cursor vs Windsurf automatically using DOM elements and class patterns
+- IDE-specific button selectors: Cursor uses `.anysphere-*`, Windsurf uses `.bg-ide-button-background`
+- Adaptive detection with fallback to global button search
+- Shows detected IDE in startup message and logs
+- Same functionality across both IDEs with appropriate selectors
+
+## Build System
+✅ **Professional Minification with Terser**:
+- `build.js` script uses Terser for safe JavaScript minification
+- `cursor-auto-accept-simple.min.js` with 53%+ compression (133KB → 62KB)
+- Preserves all function names and global commands for debugging
+- Syntax validation ensures minified code is error-free
+- Automatic Terser installation if not available
+- Run `npm run build` or `node build.js` to rebuild after changes
+
+multi-IDE support added with automatic Cursor/Windsurf detection, professional Terser-based build system, adaptive selectors for each IDE
+
+windsurf run command accept required pointerdown/up events; inject full pointer & mouse down/up before click
+
+windsurf accept all file changes enhanced selectors for span elements with hover classes, reject button exclusion added
  
