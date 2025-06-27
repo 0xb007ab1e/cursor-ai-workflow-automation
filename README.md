@@ -3,6 +3,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Cursor](https://img.shields.io/badge/Cursor-Compatible-blue.svg)](https://cursor.sh/)
 [![Created by @ivalsaraj](https://img.shields.io/badge/Created%20by-@ivalsaraj-blue)](https://linkedin.com/in/ivalsaraj)
+
+# ‼️ DO NOT USE IT, AI LLM MODELS CAN MAKE MISTAKES, THIS WORKS FOR SMALL PROJECTS BUT FOR LARGE PROJECTS ALWAYS REVIEW THE CODE, VERIFY THE CODE OF LLM, DON'T BLINDLY TRUST LLM MODEL
+## TRUST, BUT VERIFY!
 ### Why can't Cursor work fully-agentic like Bolt, Loveable, or v0 even with high efficient models? Like "Prompt to Production" or "True Yolo Mode", Here is the answer of "How to make it"!
 **🪄 Automagically clicks "Accept", "Accept All", "Run", "Resume Conversation" Cursor AI suggestions with comprehensive analytics, conversation analysis, and ROI tracking.**
 ##
