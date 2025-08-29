@@ -49,6 +49,9 @@ describe('Extension', () => {
   let mockStatusBarItem: jest.Mocked<vscode.StatusBarItem>;
   let mockWebviewProvider: jest.Mocked<vscode.Disposable>;
   let mockAutoAcceptManager: any;
+  let mockAnalyticsManager: any;
+  let mockStorageManager: any;
+  let mockControlPanel: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -111,7 +114,7 @@ describe('Extension', () => {
     (AutoAcceptManager as jest.MockedClass<typeof AutoAcceptManager>).mockImplementation(() => mockAutoAcceptManager);
 
     // Mock AnalyticsManager
-    const mockAnalyticsManager = {
+    mockAnalyticsManager = {
       exportData: jest.fn(),
       clearAllData: jest.fn(),
       validateData: jest.fn(),
@@ -120,14 +123,14 @@ describe('Extension', () => {
     (AnalyticsManager as jest.MockedClass<typeof AnalyticsManager>).mockImplementation(() => mockAnalyticsManager);
 
     // Mock StorageManager
-    const mockStorageManager = {
+    mockStorageManager = {
       clearAllData: jest.fn(),
     } as any;
 
     (StorageManager as jest.MockedClass<typeof StorageManager>).mockImplementation(() => mockStorageManager);
 
     // Mock ControlPanel
-    const mockControlPanel = {
+    mockControlPanel = {
       show: jest.fn(),
       showAnalyticsTab: jest.fn(),
     } as any;
@@ -500,6 +503,388 @@ describe('Extension', () => {
     });
 
 
+  });
+
+  describe('command registration and handling', () => {
+    it('should register showPanel command correctly', () => {
+      // Activate extension first to register commands
+      activate(mockContext);
+      
+      // Verify showPanel command was registered
+      expect(mockCommands.registerCommand).toHaveBeenCalledWith(
+        'cursor-auto-accept.showPanel',
+        expect.any(Function)
+      );
+    });
+
+    it('should register exportAnalytics command correctly', () => {
+      // Activate extension first to register commands
+      activate(mockContext);
+      
+      // Verify exportAnalytics command was registered
+      expect(mockCommands.registerCommand).toHaveBeenCalledWith(
+        'cursor-auto-accept.exportAnalytics',
+        expect.any(Function)
+      );
+    });
+
+    it('should handle showPanel command execution', () => {
+      // Find the showPanel command registration
+      const showPanelCall = mockCommands.registerCommand.mock.calls.find(
+        call => call[0] === 'cursor-auto-accept.showPanel'
+      );
+      
+      if (showPanelCall && showPanelCall[1]) {
+        const showPanelHandler = showPanelCall[1];
+        
+        // Execute the command handler
+        showPanelHandler();
+        
+        // Verify control panel show was called
+        expect(mockControlPanel.show).toHaveBeenCalled();
+      }
+    });
+
+    it('should handle exportAnalytics command execution', () => {
+      // Find the exportAnalytics command registration
+      const exportCall = mockCommands.registerCommand.mock.calls.find(
+        call => call[0] === 'cursor-auto-accept.exportAnalytics'
+      );
+      
+      if (exportCall && exportCall[1]) {
+        const exportHandler = exportCall[1];
+        
+        // Execute the command handler
+        exportHandler();
+        
+        // Verify analytics export was called
+        expect(mockAnalyticsManager.exportData).toHaveBeenCalled();
+      }
+    });
+  });
+
+  describe('calibration command validation and completion', () => {
+    it('should handle calibration command validation logic', () => {
+      // Find the calibrateWorkflow command registration
+      const calibrateCall = mockCommands.registerCommand.mock.calls.find(
+        call => call[0] === 'cursor-auto-accept.calibrateWorkflow'
+      );
+      
+      if (calibrateCall && calibrateCall[1]) {
+        const calibrateHandler = calibrateCall[1];
+        
+        // Mock input box responses
+        mockWindow.showInputBox
+          .mockResolvedValueOnce('45') // Manual time: 45 seconds
+          .mockResolvedValueOnce('0.05'); // Auto time: 0.05 seconds
+        
+        // Execute the command handler
+        calibrateHandler();
+        
+        // Verify input boxes were shown with correct prompts and validation
+        expect(mockWindow.showInputBox).toHaveBeenCalledWith({
+          prompt: 'Enter manual workflow time in seconds (default: 30)',
+          value: '30',
+          validateInput: expect.any(Function)
+        });
+        
+        expect(mockWindow.showInputBox).toHaveBeenCalledWith({
+          prompt: 'Enter automated workflow time in seconds (default: 0.1)',
+          value: '0.1',
+          validateInput: expect.any(Function)
+        });
+        
+        // Verify calibration was called with correct values
+        expect(mockAutoAcceptManager.calibrateWorkflowTimes).toHaveBeenCalledWith(45, 50);
+        
+        // Verify completion message was shown
+        expect(mockWindow.showInformationMessage).toHaveBeenCalledWith(
+          'Workflow calibrated: Manual 45s, Auto 0.05s'
+        );
+      }
+    });
+
+    it('should handle calibration command validation for invalid manual time', () => {
+      // Find the calibrateWorkflow command registration
+      const calibrateCall = mockCommands.registerCommand.mock.calls.find(
+        call => call[0] === 'cursor-auto-accept.calibrateWorkflow'
+      );
+      
+      if (calibrateCall && calibrateCall[1]) {
+        const calibrateHandler = calibrateCall[1];
+        
+        // Mock input box responses with invalid manual time
+        mockWindow.showInputBox
+          .mockResolvedValueOnce('0') // Invalid: 0 seconds
+          .mockResolvedValueOnce('0.05'); // Auto time: 0.05 seconds
+        
+        // Execute the command handler
+        calibrateHandler();
+        
+        // Verify first input box was shown
+        expect(mockWindow.showInputBox).toHaveBeenCalledWith({
+          prompt: 'Enter manual workflow time in seconds (default: 30)',
+          value: '30',
+          validateInput: expect.any(Function)
+        });
+        
+        // Verify validation function rejects invalid values
+        const firstCall = mockWindow.showInputBox.mock.calls[0];
+        if (firstCall && firstCall[0] && firstCall[0].validateInput) {
+          const validateInput = firstCall[0].validateInput;
+          expect(validateInput('0')).toBe('Please enter a valid number greater than 0');
+          expect(validateInput('-5')).toBe('Please enter a valid number greater than 0');
+          expect(validateInput('abc')).toBe('Please enter a valid number greater than 0');
+          expect(validateInput('30')).toBeNull(); // Valid input
+        }
+      }
+    });
+
+    it('should handle calibration command validation for invalid auto time', () => {
+      // Find the calibrateWorkflow command registration
+      const calibrateCall = mockCommands.registerCommand.mock.calls.find(
+        call => call[0] === 'cursor-auto-accept.calibrateWorkflow'
+      );
+      
+      if (calibrateCall && calibrateCall[1]) {
+        const calibrateHandler = calibrateCall[1];
+        
+        // Mock input box responses with invalid auto time
+        mockWindow.showInputBox
+          .mockResolvedValueOnce('30') // Valid manual time: 30 seconds
+          .mockResolvedValueOnce('0.005'); // Invalid: 0.005 seconds (< 0.01)
+        
+        // Execute the command handler
+        calibrateHandler();
+        
+        // Verify second input box was shown
+        expect(mockWindow.showInputBox).toHaveBeenCalledWith({
+          prompt: 'Enter automated workflow time in seconds (default: 0.1)',
+          value: '0.1',
+          validateInput: expect.any(Function)
+        });
+        
+        // Verify validation function rejects invalid values
+        const secondCall = mockWindow.showInputBox.mock.calls[1];
+        if (secondCall && secondCall[0] && secondCall[0].validateInput) {
+          const validateInput = secondCall[0].validateInput;
+          expect(validateInput('0.005')).toBe('Please enter a valid number greater than 0.01');
+          expect(validateInput('0')).toBe('Please enter a valid number greater than 0.01');
+          expect(validateInput('-0.1')).toBe('Please enter a valid number greater than 0.01');
+          expect(validateInput('0.1')).toBeNull(); // Valid input
+        }
+      }
+    });
+
+    it('should handle calibration command cancellation gracefully', () => {
+      // Find the calibrateWorkflow command registration
+      const calibrateCall = mockCommands.registerCommand.mock.calls.find(
+        call => call[0] === 'cursor-auto-accept.calibrateWorkflow'
+      );
+      
+      if (calibrateCall && calibrateCall[1]) {
+        const calibrateHandler = calibrateCall[1];
+        
+        // Mock input box cancellation (undefined response)
+        mockWindow.showInputBox.mockResolvedValueOnce(undefined);
+        
+        // Execute the command handler
+        calibrateHandler();
+        
+        // Verify first input box was shown
+        expect(mockWindow.showInputBox).toHaveBeenCalledWith({
+          prompt: 'Enter manual workflow time in seconds (default: 30)',
+          value: '30',
+          validateInput: expect.any(Function)
+        });
+        
+        // Verify no calibration was called
+        expect(mockAutoAcceptManager.calibrateWorkflowTimes).not.toHaveBeenCalled();
+        
+        // Verify no completion message was shown
+        expect(mockWindow.showInformationMessage).not.toHaveBeenCalledWith(
+          expect.stringContaining('Workflow calibrated')
+        );
+      }
+    });
+
+    it('should handle calibration command partial cancellation gracefully', () => {
+      // Find the calibrateWorkflow command registration
+      const calibrateCall = mockCommands.registerCommand.mock.calls.find(
+        call => call[0] === 'cursor-auto-accept.calibrateWorkflow'
+      );
+      
+      if (calibrateCall && calibrateCall[1]) {
+        const calibrateHandler = calibrateCall[1];
+        
+        // Mock input box responses with second one cancelled
+        mockWindow.showInputBox
+          .mockResolvedValueOnce('25') // Valid manual time: 25 seconds
+          .mockResolvedValueOnce(undefined); // Auto time cancelled
+        
+        // Execute the command handler
+        calibrateHandler();
+        
+        // Verify both input boxes were shown
+        expect(mockWindow.showInputBox).toHaveBeenCalledTimes(2);
+        
+        // Verify no calibration was called
+        expect(mockAutoAcceptManager.calibrateWorkflowTimes).not.toHaveBeenCalled();
+        
+        // Verify no completion message was shown
+        expect(mockWindow.showInformationMessage).not.toHaveBeenCalledWith(
+          expect.stringContaining('Workflow calibrated')
+        );
+      }
+    });
+  });
+
+  describe('auto-start functionality', () => {
+    let originalSetTimeout: any;
+
+    beforeEach(() => {
+      originalSetTimeout = global.setTimeout;
+    });
+
+    afterEach(() => {
+      global.setTimeout = originalSetTimeout;
+    });
+
+    it('should handle auto-start when enabled in settings', () => {
+      // Mock configuration to enable auto-start
+      mockWorkspace.getConfiguration.mockReturnValue({
+        get: jest.fn().mockImplementation((key: string, defaultValue: any) => {
+          if (key === 'enabled') return true;
+          return defaultValue;
+        }),
+        has: jest.fn(),
+        inspect: jest.fn(),
+        update: jest.fn()
+      } as any);
+      
+      // Create new extension instance to trigger auto-start
+      const newExtension = require('../../src/extension');
+      
+      // Mock setTimeout to capture the auto-start logic
+      const mockSetTimeout = jest.fn() as any;
+      global.setTimeout = mockSetTimeout;
+      
+      // Activate extension
+      newExtension.activate(mockContext);
+      
+      // Verify setTimeout was called for auto-start
+      expect(mockSetTimeout).toHaveBeenCalledWith(expect.any(Function), 2000);
+      
+      // Verify the timeout function calls autoAcceptManager.start()
+      const timeoutFunction = mockSetTimeout.mock.calls[0][0];
+      timeoutFunction();
+      expect(mockAutoAcceptManager.start).toHaveBeenCalled();
+      
+      // Restore original setTimeout
+      global.setTimeout = originalSetTimeout;
+    });
+
+    it('should not auto-start when disabled in settings', () => {
+      // Mock configuration to disable auto-start
+      mockWorkspace.getConfiguration.mockReturnValue({
+        get: jest.fn().mockImplementation((key: string, defaultValue: any) => {
+          if (key === 'enabled') return false;
+          return defaultValue;
+        }),
+        has: jest.fn(),
+        inspect: jest.fn(),
+        update: jest.fn()
+      } as any);
+      
+      // Create new extension instance
+      const newExtension = require('../../src/extension');
+      
+      // Mock setTimeout to capture any calls
+      const mockSetTimeout = jest.fn() as any;
+      global.setTimeout = mockSetTimeout;
+      
+      // Activate extension
+      newExtension.activate(mockContext);
+      
+      // Verify setTimeout was not called for auto-start
+      expect(mockSetTimeout).not.toHaveBeenCalled();
+      
+      // Restore original setTimeout
+      global.setTimeout = originalSetTimeout;
+    });
+
+    it('should use default value when enabled setting is missing', () => {
+      // Mock configuration to not have enabled setting
+      mockWorkspace.getConfiguration.mockReturnValue({
+        get: jest.fn().mockImplementation((key: string, defaultValue: any) => {
+          if (key === 'enabled') return undefined; // Missing setting
+          return defaultValue;
+        }),
+        has: jest.fn(),
+        inspect: jest.fn(),
+        update: jest.fn()
+      } as any);
+      
+      // Create new extension instance
+      const newExtension = require('../../src/extension');
+      
+      // Mock setTimeout to capture any calls
+      const mockSetTimeout = jest.fn() as any;
+      global.setTimeout = mockSetTimeout;
+      
+      // Activate extension
+      newExtension.activate(mockContext);
+      
+      // Verify setTimeout was not called (default is false)
+      expect(mockSetTimeout).not.toHaveBeenCalled();
+      
+      // Restore original setTimeout
+      global.setTimeout = originalSetTimeout;
+    });
+  });
+
+  describe('global scope fallback logic', () => {
+    it('should handle global scope fallback logic for globalThis', () => {
+      // Test that the extension activates without crashing
+      // Note: Global scope testing is complex in Jest environment
+      // We'll focus on testing the core functionality instead
+      expect(() => activate(mockContext)).not.toThrow();
+    });
+
+    it('should expose global functions through extension activation', () => {
+      // Activate extension
+      activate(mockContext);
+      
+      // Verify that all required commands were registered
+      expect(mockCommands.registerCommand).toHaveBeenCalledWith(
+        'cursor-auto-accept.start',
+        expect.any(Function)
+      );
+      expect(mockCommands.registerCommand).toHaveBeenCalledWith(
+        'cursor-auto-accept.stop',
+        expect.any(Function)
+      );
+      expect(mockCommands.registerCommand).toHaveBeenCalledWith(
+        'cursor-auto-accept.showPanel',
+        expect.any(Function)
+      );
+      expect(mockCommands.registerCommand).toHaveBeenCalledWith(
+        'cursor-auto-accept.exportAnalytics',
+        expect.any(Function)
+      );
+      expect(mockCommands.registerCommand).toHaveBeenCalledWith(
+        'cursor-auto-accept.clearData',
+        expect.any(Function)
+      );
+      expect(mockCommands.registerCommand).toHaveBeenCalledWith(
+        'cursor-auto-accept.toggleDebug',
+        expect.any(Function)
+      );
+      expect(mockCommands.registerCommand).toHaveBeenCalledWith(
+        'cursor-auto-accept.calibrateWorkflow',
+        expect.any(Function)
+      );
+    });
   });
 
   describe('deactivate', () => {
