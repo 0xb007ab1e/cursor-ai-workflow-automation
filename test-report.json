@@ -1,0 +1,41 @@
+{
+  "timestamp": "2025-08-27T19:21:21.022Z",
+  "summary": {
+    "totalTests": 3,
+    "totalPassed": 0,
+    "totalFailed": 3,
+    "success": false
+  },
+  "testSuites": {
+    "unit": {
+      "passed": 0,
+      "failed": 1,
+      "total": 1,
+      "duration": 0
+    },
+    "integration": {
+      "passed": 0,
+      "failed": 1,
+      "total": 1,
+      "duration": 0
+    },
+    "e2e": {
+      "passed": 0,
+      "failed": 1,
+      "total": 1,
+      "duration": 0
+    }
+  },
+  "coverage": {
+    "statements": 0,
+    "branches": 0,
+    "functions": 0,
+    "lines": 0
+  },
+  "results": {
+    "unit": false,
+    "integration": false,
+    "e2e": false,
+    "coverage": false
+  }
+}

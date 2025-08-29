@@ -1,0 +1,250 @@
+{
+  "name": "cursor-auto-accept-extension",
+  "displayName": "Cursor Auto Accept & Analytics",
+  "description": "Automatically accepts Cursor AI suggestions with comprehensive analytics and ROI tracking",
+  "version": "1.0.0",
+  "publisher": "ivalsaraj",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other",
+    "Productivity",
+    "AI"
+  ],
+  "keywords": [
+    "cursor",
+    "ai",
+    "auto-accept",
+    "productivity",
+    "analytics",
+    "roi",
+    "automation"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "cursor-auto-accept.start",
+        "title": "Start Auto Accept",
+        "category": "Cursor Auto Accept"
+      },
+      {
+        "command": "cursor-auto-accept.stop",
+        "title": "Stop Auto Accept",
+        "category": "Cursor Auto Accept"
+      },
+      {
+        "command": "cursor-auto-accept.showPanel",
+        "title": "Show Control Panel",
+        "category": "Cursor Auto Accept"
+      },
+      {
+        "command": "cursor-auto-accept.exportAnalytics",
+        "title": "Export Analytics",
+        "category": "Cursor Auto Accept"
+      },
+      {
+        "command": "cursor-auto-accept.clearData",
+        "title": "Clear All Data",
+        "category": "Cursor Auto Accept"
+      },
+      {
+        "command": "cursor-auto-accept.toggleDebug",
+        "title": "Toggle Debug Mode",
+        "category": "Cursor Auto Accept"
+      },
+      {
+        "command": "cursor-auto-accept.calibrateWorkflow",
+        "title": "Calibrate Workflow Times",
+        "category": "Cursor Auto Accept"
+      }
+    ],
+    "configuration": {
+      "title": "Cursor Auto Accept",
+      "properties": {
+        "cursorAutoAccept.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable auto-accept functionality on startup"
+        },
+        "cursorAutoAccept.interval": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 500,
+          "maximum": 10000,
+          "description": "Check interval in milliseconds"
+        },
+        "cursorAutoAccept.enableAcceptAll": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Accept All buttons"
+        },
+        "cursorAutoAccept.enableAccept": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Accept buttons"
+        },
+        "cursorAutoAccept.enableRun": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Run buttons"
+        },
+        "cursorAutoAccept.enableApply": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Apply buttons"
+        },
+        "cursorAutoAccept.enableResume": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Resume Conversation links"
+        },
+        "cursorAutoAccept.enableConnectionResume": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Connection Resume buttons"
+        },
+        "cursorAutoAccept.enableTryAgain": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Try Again buttons"
+        },
+        "cursorAutoAccept.debugMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable debug logging"
+        },
+        "cursorAutoAccept.manualWorkflowTime": {
+          "type": "number",
+          "default": 30,
+          "minimum": 5,
+          "maximum": 120,
+          "description": "Manual workflow time in seconds for ROI calculation"
+        },
+        "cursorAutoAccept.autoWorkflowTime": {
+          "type": "number",
+          "default": 0.1,
+          "minimum": 0.01,
+          "maximum": 1,
+          "description": "Automated workflow time in seconds for ROI calculation"
+        }
+      }
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "cursor-auto-accept.start",
+          "when": "!cursorAutoAccept.isRunning"
+        },
+        {
+          "command": "cursor-auto-accept.stop",
+          "when": "cursorAutoAccept.isRunning"
+        },
+        {
+          "command": "cursor-auto-accept.showPanel"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "cursor-auto-accept.showPanel",
+          "group": "navigation",
+          "when": "true"
+        }
+      ]
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "cursorAutoAcceptView",
+          "name": "Cursor Auto Accept",
+          "when": "true"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "cursorAutoAccept",
+          "title": "Cursor Auto Accept",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "lint:fix": "eslint src --ext ts --fix",
+    "format": "prettier --write src/**/*.ts",
+    "format:check": "prettier --check src/**/*.ts",
+    "quality": "npm run lint && npm run format:check && npm run test:coverage",
+    "fix": "npm run lint:fix && npm run format",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:e2e": "jest --testPathPattern=e2e",
+    "test:unit": "jest --testPathPattern=unit",
+    "test:integration": "jest --testPathPattern=integration",
+    "test:ci": "jest --ci --coverage --watchAll=false",
+    "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
+    "test:report": "jest --coverage --coverageReporters=html --coverageReporters=text",
+    "test:runner": "node scripts/run-tests.js",
+    "test:runner:unit": "node scripts/run-tests.js unit",
+    "test:runner:integration": "node scripts/run-tests.js integration",
+    "test:runner:e2e": "node scripts/run-tests.js e2e",
+    "test:runner:coverage": "node scripts/run-tests.js coverage",
+    "test:runner:performance": "node scripts/run-tests.js performance",
+    "test:runner:all": "node scripts/run-tests.js all",
+    "automate": "node scripts/automate.js",
+    "automate:check": "node scripts/automate.js check",
+    "automate:install": "node scripts/automate.js install",
+    "automate:build": "node scripts/automate.js build",
+    "automate:test": "node scripts/automate.js test",
+    "automate:validate": "node scripts/automate.js validate",
+    "automate:package": "node scripts/automate.js package",
+    "automate:full": "node scripts/automate.js full",
+    "setup": "npm run automate:full",
+    "quick": "npm run automate:build && npm run automate:validate",
+    "dev": "npm run watch",
+    "package": "vsce package",
+    "publish": "vsce publish",
+    "pretest": "npm run compile",
+    "posttest": "npm run test:coverage"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^18.19.0",
+    "@types/vscode": "^1.74.0",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "jest": "^29.5.0",
+    "jest-environment-jsdom": "^29.5.0",
+    "jest-extended": "^3.0.0",
+    "prettier": "^3.6.2",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ivalsaraj/cursor-auto-accept-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ivalsaraj/cursor-auto-accept-extension/issues"
+  },
+  "homepage": "https://github.com/ivalsaraj/cursor-auto-accept-extension#readme",
+  "license": "MIT",
+  "author": {
+    "name": "Ivan Saraj",
+    "email": "ivan@ivalsaraj.com",
+    "url": "https://linkedin.com/in/ivalsaraj"
+  }
+}
