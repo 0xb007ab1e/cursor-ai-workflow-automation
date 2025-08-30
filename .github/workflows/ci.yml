@@ -1,0 +1,160 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+env:
+  NODE_VERSION: '18'
+  VSCODE_VERSION: '1.74.0'
+
+jobs:
+  # Test and Build Job
+  test-and-build:
+    name: Test & Build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run linting
+      run: npm run lint
+      
+    - name: Run type checking
+      run: npm run compile
+      
+    - name: Run tests
+      run: npm run test:ci
+      
+    - name: Run integration tests
+      run: npm run test:integration
+      
+    - name: Run e2e tests
+      run: npm run test:e2e
+      
+    - name: Generate test coverage report
+      run: npm run test:coverage
+      
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+        
+    - name: Build extension
+      run: npm run compile
+      
+    - name: Create VSIX package
+      run: node create-vsix.js
+      
+    - name: Upload VSIX artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: extension-vsix
+        path: cursor-ai-workflow-automation-*.vsix
+        retention-days: 30
+        
+    - name: Validate VSIX package
+      run: |
+        # Check if VSIX was created
+        if [ ! -f cursor-ai-workflow-automation-*.vsix ]; then
+          echo "❌ VSIX package not found!"
+          exit 1
+        fi
+        
+        # Check package size
+        SIZE=$(stat -c%s cursor-ai-workflow-automation-*.vsix)
+        echo "📦 VSIX package size: $SIZE bytes"
+        
+        if [ $SIZE -lt 1000 ]; then
+          echo "❌ VSIX package too small, likely invalid"
+          exit 1
+        fi
+        
+        echo "✅ VSIX package validation passed"
+
+  # Security Scan Job
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: test-and-build
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run npm audit
+      run: npm audit --audit-level=moderate
+      
+    - name: Run Snyk security scan
+      uses: snyk/actions/node@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=high
+
+  # Quality Gate Job
+  quality-gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    needs: [test-and-build, security-scan]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run quality checks
+      run: npm run quality
+      
+    - name: Check test coverage threshold
+      run: |
+        # Extract coverage percentage from coverage report
+        COVERAGE=$(npm run test:coverage 2>&1 | grep -o 'All files[^%]*%' | grep -o '[0-9]*\.[0-9]*%' | head -1 | sed 's/%//')
+        
+        if [ -z "$COVERAGE" ]; then
+          echo "❌ Could not extract coverage percentage"
+          exit 1
+        fi
+        
+        echo "📊 Test coverage: ${COVERAGE}%"
+        
+        # Check if coverage meets threshold (80%)
+        if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+          echo "❌ Test coverage below 80% threshold"
+          exit 1
+        fi
+        
+        echo "✅ Test coverage meets threshold"

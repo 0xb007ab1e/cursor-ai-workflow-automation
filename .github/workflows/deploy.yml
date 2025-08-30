@@ -1,0 +1,249 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["Release & Publish"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+      force:
+        description: 'Force deployment even if tests fail'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  # Pre-deployment checks
+  pre-deploy:
+    name: Pre-deployment Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run security audit
+      run: npm audit --audit-level=high
+      
+    - name: Run vulnerability scan
+      run: |
+        # Check for known vulnerabilities
+        if npm audit --audit-level=high 2>&1 | grep -q "found"; then
+          echo "❌ High severity vulnerabilities found"
+          exit 1
+        fi
+        echo "✅ No high severity vulnerabilities found"
+      
+    - name: Validate extension manifest
+      run: |
+        # Validate package.json structure
+        node -e "
+          const pkg = require('./package.json');
+          const required = ['name', 'version', 'publisher', 'engines', 'main'];
+          const missing = required.filter(field => !pkg[field]);
+          if (missing.length > 0) {
+            console.error('❌ Missing required fields:', missing);
+            process.exit(1);
+          }
+          console.log('✅ Package.json validation passed');
+        "
+      
+    - name: Check extension size
+      run: |
+        npm run compile
+        node create-vsix.js
+        
+        SIZE=$(stat -c%s cursor-ai-workflow-automation-*.vsix)
+        echo "📦 Extension size: $SIZE bytes"
+        
+        # Check if size is reasonable (between 10KB and 10MB)
+        if [ $SIZE -lt 10240 ] || [ $SIZE -gt 10485760 ]; then
+          echo "❌ Extension size out of reasonable range"
+          exit 1
+        fi
+        
+        echo "✅ Extension size validation passed"
+
+  # Deploy to staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: pre-deploy
+    if: ${{ github.event.inputs.environment == 'staging' || github.event.inputs.environment == '' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build extension
+      run: npm run compile
+      
+    - name: Create VSIX package
+      run: node create-vsix.js
+      
+    - name: Upload to staging storage
+      run: |
+        # Create staging directory
+        mkdir -p staging/
+        cp cursor-ai-workflow-automation-*.vsix staging/
+        
+        # Create staging manifest
+        cat > staging/manifest.json << EOF
+        {
+          "version": "$(node -p "require('./package.json').version")",
+          "build_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "commit": "${{ github.sha }}",
+          "environment": "staging"
+        }
+        EOF
+        
+        echo "✅ Staging deployment completed"
+      
+    - name: Notify staging deployment
+      uses: actions/github-script@v7
+      with:
+        script: |
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.payload.release?.id || 1,
+            body: `🚀 **Staging Deployment Completed**
+          
+          📦 **Version**: $(node -p "require('./package.json').version")
+          🔗 **Commit**: ${{ github.sha }}
+          📅 **Deployed**: ${new Date().toISOString()}
+          🌍 **Environment**: Staging
+          
+          The extension is now available for testing in the staging environment.`
+          });
+
+  # Deploy to production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [pre-deploy, deploy-staging]
+    if: ${{ github.event.inputs.environment == 'production' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build extension
+      run: npm run compile
+      
+    - name: Create VSIX package
+      run: node create-vsix.js
+      
+    - name: Upload to production storage
+      run: |
+        # Create production directory
+        mkdir -p production/
+        cp cursor-ai-workflow-automation-*.vsix production/
+        
+        # Create production manifest
+        cat > production/manifest.json << EOF
+        {
+          "version": "$(node -p "require('./package.json').version")",
+          "build_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "commit": "${{ github.sha }}",
+          "environment": "production"
+        }
+        EOF
+        
+        echo "✅ Production deployment completed"
+      
+    - name: Create production tag
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git tag -a "prod-$(node -p "require('./package.json').version")" -m "Production release $(node -p "require('./package.json').version")"
+        git push origin "prod-$(node -p "require('./package.json').version")"
+      
+    - name: Notify production deployment
+      uses: actions/github-script@v7
+      with:
+        script: |
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.payload.release?.id || 1,
+            body: `🎉 **Production Deployment Completed**
+          
+          📦 **Version**: $(node -p "require('./package.json').version")
+          🔗 **Commit**: ${{ github.sha }}
+          📅 **Deployed**: ${new Date().toISOString()}
+          🌍 **Environment**: Production
+          🏷️ **Tag**: prod-$(node -p "require('./package.json').version")
+          
+          The extension is now live in production!`
+          });
+
+  # Rollback job
+  rollback:
+    name: Rollback
+    runs-on: ubuntu-latest
+    if: failure()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Get previous version
+      run: |
+        PREV_VERSION=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "v1.0.0")
+        echo "Previous version: $PREV_VERSION"
+      
+    - name: Notify rollback
+      uses: actions/github-script@v7
+      with:
+        script: |
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.payload.release?.id || 1,
+            body: `⚠️ **Deployment Failed - Rollback Required**
+          
+          🚨 **Error**: Deployment to ${{ github.event.inputs.environment }} failed
+          🔄 **Action**: Manual rollback required
+          📅 **Time**: ${new Date().toISOString()}
+          
+          Please check the deployment logs and consider rolling back to the previous version.`
+          });

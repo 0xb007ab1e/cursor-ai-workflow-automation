@@ -1,0 +1,69 @@
+{
+  "ci": {
+    "node_version": "18",
+    "vscode_version": "1.74.0",
+    "cache_enabled": true,
+    "parallel_jobs": 3
+  },
+  "quality": {
+    "test_coverage_threshold": 80,
+    "build_time_threshold": 30,
+    "test_time_threshold": 60,
+    "bundle_size_threshold": 5242880,
+    "max_vulnerabilities": 0,
+    "max_outdated_deps": 10
+  },
+  "security": {
+    "audit_level": "moderate",
+    "snyk_enabled": true,
+    "dependency_check": true,
+    "license_check": true
+  },
+  "release": {
+    "auto_version": true,
+    "create_tags": true,
+    "publish_to_marketplace": false,
+    "generate_changelog": true,
+    "notify_on_release": true
+  },
+  "deployment": {
+    "environments": ["staging", "production"],
+    "staging_auto_deploy": true,
+    "production_manual_approval": true,
+    "rollback_enabled": true,
+    "health_checks": true
+  },
+  "monitoring": {
+    "schedule": "0 */6 * * *",
+    "health_check_interval": "6h",
+    "performance_monitoring": true,
+    "alert_on_failure": true,
+    "metrics_collection": true
+  },
+  "notifications": {
+    "slack_webhook": "",
+    "email_notifications": false,
+    "github_issues": true,
+    "discord_webhook": ""
+  },
+  "artifacts": {
+    "retention_days": 30,
+    "include_coverage": true,
+    "include_logs": true,
+    "include_metrics": true
+  },
+  "testing": {
+    "unit_tests": true,
+    "integration_tests": true,
+    "e2e_tests": true,
+    "performance_tests": false,
+    "security_tests": true
+  },
+  "build": {
+    "optimize": true,
+    "minify": false,
+    "source_maps": true,
+    "tree_shaking": true,
+    "bundle_analysis": true
+  }
+}
