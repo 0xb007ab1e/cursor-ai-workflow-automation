@@ -632,5 +632,405 @@ describe('AnalyticsManager', () => {
             expect(roiData.averageAutomatedWorkflow).toBe(0);
             expect(roiData.totalTimeSaved).toBeGreaterThan(0);
         });
+
+        test('should handle file acceptance with existing file data', async () => {
+            const fileInfo1: FileInfo = {
+                filename: 'test.ts',
+                addedLines: 10,
+                deletedLines: 5,
+                timestamp: new Date()
+            };
+
+            const fileInfo2: FileInfo = {
+                filename: 'test.ts', // Same file
+                addedLines: 15,
+                deletedLines: 3,
+                timestamp: new Date()
+            };
+
+            await analyticsManager.trackFileAcceptance(fileInfo1);
+            await analyticsManager.trackFileAcceptance(fileInfo2);
+
+            const data = await analyticsManager.getData();
+            const fileData = data.analytics.files.get('test.ts');
+            expect(fileData?.acceptCount).toBe(2);
+            expect(fileData?.totalAdded).toBe(25);
+            expect(fileData?.totalDeleted).toBe(8);
+        });
+
+        test('should handle file acceptance with button types tracking', async () => {
+            const fileInfo1: FileInfo = {
+                filename: 'test.ts',
+                addedLines: 10,
+                deletedLines: 5,
+                timestamp: new Date()
+            };
+
+            const fileInfo2: FileInfo = {
+                filename: 'test.ts',
+                addedLines: 15,
+                deletedLines: 3,
+                timestamp: new Date()
+            };
+
+            await analyticsManager.trackFileAcceptance(fileInfo1, 'accept');
+            await analyticsManager.trackFileAcceptance(fileInfo2, 'run');
+
+            const data = await analyticsManager.getData();
+            const fileData = data.analytics.files.get('test.ts');
+            expect(fileData?.buttonTypes?.accept).toBe(1);
+            expect(fileData?.buttonTypes?.run).toBe(1);
+        });
+
+        test('should handle button click with session tracking', async () => {
+            analyticsManager.startSession();
+
+            await analyticsManager.trackButtonClick('Accept', 1000);
+
+            const data = await analyticsManager.getData();
+            expect(data.analytics.buttonClicks).toHaveLength(1);
+            expect(data.analytics.buttonClicks[0].sessionId).toBeDefined();
+        });
+
+        test('should handle button click without session tracking', async () => {
+            await analyticsManager.trackButtonClick('Accept', 1000);
+
+            const data = await analyticsManager.getData();
+            expect(data.analytics.buttonClicks).toHaveLength(1);
+            expect(data.analytics.buttonClicks[0].sessionId).toBeUndefined();
+        });
+
+        test('should handle button click with workflow session tracking', async () => {
+            await analyticsManager.trackButtonClick('Accept', 1000);
+
+            const roiData = analyticsManager.getROI();
+            expect(roiData.workflowSessions).toHaveLength(1);
+            expect(roiData.workflowSessions[0].buttonType).toBe('accept');
+            expect(roiData.workflowSessions[0].timeSaved).toBe(1000);
+        });
+
+        test('should handle storage load with missing analytics data', () => {
+            mockStorageManager.getData.mockReturnValue({
+                someOtherData: 'value'
+            });
+
+            const newAnalyticsManager = new AnalyticsManager(mockStorageManager as any);
+            const data = newAnalyticsManager.getData();
+            expect(data.analytics.files).toBeInstanceOf(Map);
+            expect(data.analytics.sessions).toEqual([]);
+        });
+
+        test('should handle storage load with missing ROI data', () => {
+            mockStorageManager.getData.mockReturnValue({
+                analytics: {
+                    files: [],
+                    sessions: [],
+                    totalAccepts: 0
+                }
+            });
+
+            const newAnalyticsManager = new AnalyticsManager(mockStorageManager as any);
+            const roiData = newAnalyticsManager.getROI();
+            expect(roiData.workflowSessions).toEqual([]);
+            expect(roiData.codeGenerationSessions).toEqual([]);
+        });
+
+        test('should handle storage load with ROI data', () => {
+            const mockROIData = {
+                workflowSessions: [
+                    { timestamp: '2024-01-01T00:00:00.000Z', buttonType: 'accept', timeSaved: 1000 }
+                ],
+                codeGenerationSessions: [
+                    { start: '2024-01-01T00:00:00.000Z', duration: 5000 }
+                ]
+            };
+
+            mockStorageManager.getData.mockReturnValue({
+                analytics: {
+                    files: [],
+                    sessions: [],
+                    totalAccepts: 0
+                },
+                roiTracking: mockROIData
+            });
+
+            const newAnalyticsManager = new AnalyticsManager(mockStorageManager as any);
+            const roiData = newAnalyticsManager.getROI();
+            expect(roiData.workflowSessions).toHaveLength(1);
+            expect(roiData.workflowSessions[0].timestamp).toBeInstanceOf(Date);
+            expect(roiData.codeGenerationSessions).toHaveLength(1);
+            expect(roiData.codeGenerationSessions[0].start).toBeInstanceOf(Date);
+        });
+
+        test('should handle storage load error gracefully', () => {
+            mockStorageManager.getData.mockImplementation(() => {
+                throw new Error('Storage error');
+            });
+
+            expect(() => new AnalyticsManager(mockStorageManager as any)).not.toThrow();
+        });
+
+        test('should handle ROI storage load error gracefully', () => {
+            mockStorageManager.getData.mockReturnValue({
+                analytics: {
+                    files: [],
+                    sessions: [],
+                    totalAccepts: 0
+                }
+            });
+
+            // Mock a second call to throw an error for ROI loading
+            mockStorageManager.getData.mockImplementationOnce(() => {
+                throw new Error('ROI Storage error');
+            });
+
+            expect(() => new AnalyticsManager(mockStorageManager as any)).not.toThrow();
+        });
+
+        test('should handle file acceptance with filePath property', async () => {
+            const fileInfo: FileInfo = {
+                filename: 'test.ts',
+                filePath: '/path/to/test.ts',
+                addedLines: 10,
+                deletedLines: 5,
+                timestamp: new Date()
+            };
+
+            await analyticsManager.trackFileAcceptance(fileInfo);
+
+            const data = await analyticsManager.getData();
+            expect(data.analytics.fileAcceptances).toHaveLength(1);
+            expect(data.analytics.fileAcceptances[0].filePath).toBe('/path/to/test.ts');
+        });
+
+        test('should handle file acceptance without filePath property', async () => {
+            const fileInfo: FileInfo = {
+                filename: 'test.ts',
+                addedLines: 10,
+                deletedLines: 5,
+                timestamp: new Date()
+            };
+
+            await analyticsManager.trackFileAcceptance(fileInfo);
+
+            const data = await analyticsManager.getData();
+            expect(data.analytics.fileAcceptances).toHaveLength(1);
+            expect(data.analytics.fileAcceptances[0].filePath).toBe('');
+        });
+
+        test('should handle button type counts initialization', async () => {
+            const fileInfo: FileInfo = {
+                filename: 'test.ts',
+                addedLines: 10,
+                deletedLines: 5,
+                timestamp: new Date()
+            };
+
+            await analyticsManager.trackFileAcceptance(fileInfo, 'accept');
+
+            const data = await analyticsManager.getData();
+            expect(data.analytics.buttonTypeCounts.accept).toBe(1);
+        });
+
+        test('should handle button type counts initialization in file data', async () => {
+            const fileInfo: FileInfo = {
+                filename: 'test.ts',
+                addedLines: 10,
+                deletedLines: 5,
+                timestamp: new Date()
+            };
+
+            await analyticsManager.trackFileAcceptance(fileInfo, 'accept');
+
+            const data = await analyticsManager.getData();
+            const fileData = data.analytics.files.get('test.ts');
+            expect(fileData?.buttonTypes?.accept).toBe(1);
+        });
+
+        test('should handle session end with no current session', async () => {
+            // Don't start a session
+            await analyticsManager.endSession();
+
+            const data = await analyticsManager.getData();
+            expect(data.analytics.userSessions).toHaveLength(0);
+        });
+
+        test('should handle session end with current session', async () => {
+            analyticsManager.startSession();
+            await analyticsManager.endSession();
+
+            const data = await analyticsManager.getData();
+            expect(data.analytics.userSessions).toHaveLength(1);
+            expect(data.analytics.userSessions[0].endTime).toBeInstanceOf(Date);
+        });
+
+        test('should handle ROI tracking with undefined timestamps', () => {
+            const mockStorageData = {
+                roiTracking: {
+                    workflowSessions: [
+                        { timestamp: undefined, buttonType: 'accept', timeSaved: 1000 }
+                    ],
+                    codeGenerationSessions: [
+                        { start: undefined, duration: 5000 }
+                    ]
+                }
+            };
+
+            mockStorageManager.getData.mockReturnValue(mockStorageData);
+
+            const newAnalyticsManager = new AnalyticsManager(mockStorageManager as any);
+            
+            // Verify that undefined timestamps are handled gracefully
+            expect(newAnalyticsManager['roiTracking'].workflowSessions[0].timestamp).toBeUndefined();
+            expect(newAnalyticsManager['roiTracking'].codeGenerationSessions[0].start).toBeUndefined();
+        });
+
+        test('should handle analytics load with missing sessionStart', () => {
+            const mockStorageData = {
+                analytics: {
+                    files: [],
+                    sessions: [],
+                    totalAccepts: 5,
+                    // sessionStart is missing
+                    buttonTypeCounts: {}
+                }
+            };
+
+            mockStorageManager.getData.mockReturnValue(mockStorageData);
+
+            const newAnalyticsManager = new AnalyticsManager(mockStorageManager as any);
+            
+            // Verify that sessionStart defaults to current date
+            expect(newAnalyticsManager['analytics'].sessionStart).toBeInstanceOf(Date);
+        });
+
+        test('should handle analytics load with null sessionStart', () => {
+            const mockStorageData = {
+                analytics: {
+                    files: [],
+                    sessions: [],
+                    totalAccepts: 5,
+                    sessionStart: null,
+                    buttonTypeCounts: {}
+                }
+            };
+
+            mockStorageManager.getData.mockReturnValue(mockStorageData);
+
+            const newAnalyticsManager = new AnalyticsManager(mockStorageManager as any);
+            
+            // Verify that null sessionStart defaults to current date
+            expect(newAnalyticsManager['analytics'].sessionStart).toBeInstanceOf(Date);
+        });
+
+        test('should handle analytics load with missing buttonTypeCounts', () => {
+            const mockStorageData = {
+                analytics: {
+                    files: [],
+                    sessions: [],
+                    totalAccepts: 5,
+                    sessionStart: new Date(),
+                    // buttonTypeCounts is missing
+                }
+            };
+
+            mockStorageManager.getData.mockReturnValue(mockStorageData);
+
+            const newAnalyticsManager = new AnalyticsManager(mockStorageManager as any);
+            
+            // Verify that buttonTypeCounts defaults to empty object
+            expect(newAnalyticsManager['analytics'].buttonTypeCounts).toEqual({});
+        });
+
+        test('should handle ROI tracking load with missing workflowSessions', () => {
+            const mockStorageData = {
+                roiTracking: {
+                    // workflowSessions is missing
+                    codeGenerationSessions: []
+                }
+            };
+
+            mockStorageManager.getData.mockReturnValue(mockStorageData);
+
+            const newAnalyticsManager = new AnalyticsManager(mockStorageManager as any);
+            
+            // Verify that workflowSessions defaults to empty array
+            expect(newAnalyticsManager['roiTracking'].workflowSessions).toEqual([]);
+        });
+
+        test('should handle ROI tracking load with missing codeGenerationSessions', () => {
+            const mockStorageData = {
+                roiTracking: {
+                    workflowSessions: [],
+                    // codeGenerationSessions is missing
+                }
+            };
+
+            mockStorageManager.getData.mockReturnValue(mockStorageData);
+
+            const newAnalyticsManager = new AnalyticsManager(mockStorageManager as any);
+            
+            // Verify that codeGenerationSessions defaults to empty array
+            expect(newAnalyticsManager['roiTracking'].codeGenerationSessions).toEqual([]);
+        });
+
+        test('should handle analytics load with missing totalAccepts', () => {
+            const mockStorageData = {
+                analytics: {
+                    files: [],
+                    sessions: [],
+                    // totalAccepts is missing
+                    sessionStart: new Date(),
+                    buttonTypeCounts: {}
+                }
+            };
+
+            mockStorageManager.getData.mockReturnValue(mockStorageData);
+
+            const newAnalyticsManager = new AnalyticsManager(mockStorageManager as any);
+            
+            // Verify that totalAccepts defaults to 0
+            expect(newAnalyticsManager['analytics'].totalAccepts).toBe(0);
+        });
+
+        test('should handle analytics load with missing userSessions', () => {
+            const mockStorageData = {
+                analytics: {
+                    files: [],
+                    sessions: [],
+                    totalAccepts: 5,
+                    sessionStart: new Date(),
+                    buttonTypeCounts: {},
+                    // userSessions is missing
+                }
+            };
+
+            mockStorageManager.getData.mockReturnValue(mockStorageData);
+
+            const newAnalyticsManager = new AnalyticsManager(mockStorageManager as any);
+            
+            // Verify that userSessions defaults to empty array
+            expect(newAnalyticsManager['analytics'].userSessions).toEqual([]);
+        });
+
+        test('should handle analytics load with missing fileAcceptances', () => {
+            const mockStorageData = {
+                analytics: {
+                    files: [],
+                    sessions: [],
+                    totalAccepts: 5,
+                    sessionStart: new Date(),
+                    buttonTypeCounts: {},
+                    // fileAcceptances is missing
+                }
+            };
+
+            mockStorageManager.getData.mockReturnValue(mockStorageData);
+
+            const newAnalyticsManager = new AnalyticsManager(mockStorageManager as any);
+            
+            // Verify that fileAcceptances defaults to empty array
+            expect(newAnalyticsManager['analytics'].fileAcceptances).toEqual([]);
+        });
     });
 });

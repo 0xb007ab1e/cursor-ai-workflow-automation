@@ -1,5 +1,10 @@
 import { jest } from '@jest/globals';
 
+// Ensure Jest matchers are properly initialized
+expect.extend({
+  // Add any custom matchers if needed
+});
+
 // Mock VS Code API
 const mockVscode = {
     window: {

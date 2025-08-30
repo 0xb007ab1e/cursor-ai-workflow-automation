@@ -1,12 +1,13 @@
 {
-  "name": "cursor-auto-accept-extension",
-  "displayName": "Cursor Auto Accept & Analytics",
-  "description": "Automatically accepts Cursor AI suggestions with comprehensive analytics and ROI tracking",
+  "name": "cursor-ai-workflow-automation",
+  "displayName": "Cursor AI Workflow Automation",
+  "description": "Intelligent AI workflow automation for Cursor IDE with comprehensive analytics, file tracking, and ROI calculations",
   "version": "1.0.0",
-  "publisher": "ivalsaraj",
+  "publisher": "0xb007ab1e",
   "engines": {
     "vscode": "^1.74.0"
   },
+  "icon": "resources/icon.svg",
   "categories": [
     "Other",
     "Productivity",
@@ -235,16 +236,24 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ivalsaraj/cursor-auto-accept-extension.git"
+    "url": "https://github.com/0xb007ab1e/cursor-ai-workflow-automation.git"
   },
   "bugs": {
-    "url": "https://github.com/ivalsaraj/cursor-auto-accept-extension/issues"
+    "url": "https://github.com/0xb007ab1e/cursor-ai-workflow-automation/issues"
   },
-  "homepage": "https://github.com/ivalsaraj/cursor-auto-accept-extension#readme",
+  "homepage": "https://github.com/0xb007ab1e/cursor-ai-workflow-automation#readme",
   "license": "MIT",
   "author": {
-    "name": "Ivan Saraj",
+    "name": "0xb007ab1e",
+    "email": "0+b007ab1e@users.noreply.github.com",
+    "url": "https://github.com/0xb007ab1e"
+  },
+  "originalAuthor": {
+    "name": "Valsaraj R (@ivalsaraj)",
     "email": "ivan@ivalsaraj.com",
     "url": "https://linkedin.com/in/ivalsaraj"
+  },
+  "dependencies": {
+    "archiver": "7.0.1"
   }
 }

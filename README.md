@@ -1,6 +1,12 @@
-# Cursor Auto Accept & Analytics Extension
+# Cursor AI Workflow Automation
 
-A powerful Cursor IDE extension that automatically accepts AI suggestions with comprehensive analytics and ROI tracking.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Cursor](https://img.shields.io/badge/Cursor-Compatible-blue.svg)](https://cursor.sh/)
+[![Fork of @ivalsaraj](https://img.shields.io/badge/Fork%20of-@ivalsaraj-blue)](https://github.com/ivalsaraj/true-yolo-cursor-auto-accept-full-agentic-mode)
+
+> **Fork of the original work by [@ivalsaraj](https://github.com/ivalsaraj/true-yolo-cursor-auto-accept-full-agentic-mode)**
+
+Intelligent AI workflow automation for Cursor IDE with comprehensive analytics, file tracking, and ROI calculations. This enhanced version builds upon the excellent foundation created by Valsaraj R (@ivalsaraj).
 
 ## Features
 
@@ -219,9 +225,9 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Support
 
-- **GitHub Issues**: [Report bugs or request features](https://github.com/ivalsaraj/cursor-auto-accept-extension/issues)
-- **LinkedIn**: [@ivalsaraj](https://linkedin.com/in/ivalsaraj)
-- **Email**: ivan@ivalsaraj.com
+- **GitHub Issues**: [Report bugs or request features](https://github.com/0xb007ab1e/cursor-ai-workflow-automation/issues)
+- **Original Author**: [@ivalsaraj](https://linkedin.com/in/ivalsaraj)
+- **Current Maintainer**: [@0xb007ab1e](https://github.com/0xb007ab1e)
 
 ## Changelog
 
@@ -238,6 +244,18 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-**Created by [@ivalsaraj](https://linkedin.com/in/ivalsaraj)**
+## Credits
+
+### Original Author
+**Valsaraj R (@ivalsaraj)** - [LinkedIn](https://linkedin.com/in/ivalsaraj) | [GitHub](https://github.com/ivalsaraj)
+
+The original "TRUE YOLO MODE - Cursor Auto-Accept & Analytics Script" provided the foundation for this enhanced extension. Their innovative work on auto-clicking functionality, analytics tracking, and comprehensive IDE support made this project possible.
+
+### Current Maintainer
+**0xb007ab1e** - [GitHub](https://github.com/0xb007ab1e)
+
+This fork enhances the original work with improved architecture, better testing, and additional features while maintaining full compatibility with the original functionality.
+
+---
 
 *Boost your Cursor productivity with intelligent automation and insights!*

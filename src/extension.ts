@@ -5,7 +5,7 @@ import { StorageManager } from './storage';
 import { AnalyticsManager } from './analytics';
 
 export function activate(context: vscode.ExtensionContext) {
-  // console.log('Cursor Auto Accept Extension is now active!');
+  // console.log('Cursor AI Workflow Automation Extension is now active!');
 
   // Initialize managers
   const storageManager = new StorageManager(context);

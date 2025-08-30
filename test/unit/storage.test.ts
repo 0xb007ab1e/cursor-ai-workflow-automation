@@ -447,5 +447,321 @@ describe('StorageManager', () => {
 
             expect(() => (storageManager as any).cleanupOldData(30)).not.toThrow();
         });
+
+        test('should handle export when no data exists', () => {
+            mockContext.globalState.get.mockReturnValue(null);
+
+            // Mock the export functionality
+            const mockBlob = new Blob(['test'], { type: 'application/json' });
+            const mockUrl = 'blob:test';
+            const mockAnchor = document.createElement('a');
+            
+            // Mock URL.createObjectURL and revokeObjectURL
+            const originalCreateObjectURL = URL.createObjectURL;
+            const originalRevokeObjectURL = URL.revokeObjectURL;
+            (URL.createObjectURL as any) = jest.fn().mockReturnValue(mockUrl);
+            (URL.revokeObjectURL as any) = jest.fn();
+
+            expect(() => (storageManager as any).exportStorageData()).not.toThrow();
+
+            // Restore original methods
+            URL.createObjectURL = originalCreateObjectURL;
+            URL.revokeObjectURL = originalRevokeObjectURL;
+        });
+
+        test('should handle string timestamps in serialization', () => {
+            const mockData = {
+                timestamp: '2023-01-01T00:00:00.000Z',
+                savedAt: '2023-01-02T00:00:00.000Z'
+            };
+
+            // Access private method through any
+            const result = (storageManager as any).serializeData(mockData);
+            
+            expect(result.timestamp).toBeInstanceOf(Date);
+            expect(result.savedAt).toBeInstanceOf(Date);
+        });
+
+        test('should validate imported data with invalid structure', () => {
+            const invalidData = null;
+            
+            // Access private method through any
+            const result = (storageManager as any).validateImportedData(invalidData);
+            
+            expect(result).toBe(false);
+        });
+
+        test('should handle import with null data through public method', () => {
+            const result = storageManager.importStorageData('null');
+            
+            expect(result).toBe(false);
+        });
+
+        test('should validate imported data with missing required fields', () => {
+            const invalidData = { someField: 'value' };
+            
+            // Access private method through any
+            const result = (storageManager as any).validateImportedData(invalidData);
+            
+            expect(result).toBe(false);
+        });
+
+        test('should get storage usage when no data exists', () => {
+            mockContext.globalState.get.mockReturnValue(null);
+
+            const result = (storageManager as any).getStorageUsage();
+
+            expect(result).toEqual({ used: 0, available: 100, percentage: 0 });
+        });
+
+        test('should cleanup old data when no data exists', () => {
+            mockContext.globalState.get.mockReturnValue(null);
+
+            expect(() => (storageManager as any).cleanupOldData(30)).not.toThrow();
+        });
+
+        test('should handle nested date objects in analytics sessions during serialization', () => {
+            const mockData = {
+                analytics: {
+                    sessions: [
+                        { timestamp: new Date('2024-01-01T00:00:00.000Z'), data: 'test' },
+                        { timestamp: null, data: 'test2' }
+                    ]
+                }
+            };
+            mockContext.globalState.get.mockReturnValue(mockData);
+
+            const result = storageManager.getData();
+
+            expect(result?.analytics?.sessions[0].timestamp).toBeInstanceOf(Date);
+            expect(result?.analytics?.sessions[1].timestamp).toBeUndefined();
+        });
+
+        test('should handle nested date objects in analytics files during serialization', () => {
+            const mockData = {
+                analytics: {
+                    files: [
+                        ['test.js', { firstAccepted: new Date('2024-01-01T00:00:00.000Z'), lastAccepted: null }]
+                    ]
+                }
+            };
+            mockContext.globalState.get.mockReturnValue(mockData);
+
+            const result = storageManager.getData();
+
+            expect(result?.analytics?.files[0][1].firstAccepted).toBeInstanceOf(Date);
+            expect(result?.analytics?.files[0][1].lastAccepted).toBeUndefined();
+        });
+
+        test('should handle nested date objects in ROI workflow sessions during serialization', () => {
+            const mockData = {
+                roiTracking: {
+                    workflowSessions: [
+                        { timestamp: new Date('2024-01-01T00:00:00.000Z'), data: 'test' },
+                        { timestamp: null, data: 'test2' }
+                    ]
+                }
+            };
+            mockContext.globalState.get.mockReturnValue(mockData);
+
+            const result = storageManager.getData();
+
+            expect(result?.roiTracking?.workflowSessions[0].timestamp).toBeInstanceOf(Date);
+            expect(result?.roiTracking?.workflowSessions[1].timestamp).toBeUndefined();
+        });
+
+        test('should handle nested date objects in ROI code generation sessions during serialization', () => {
+            const mockData = {
+                roiTracking: {
+                    codeGenerationSessions: [
+                        { start: new Date('2024-01-01T00:00:00.000Z'), data: 'test' },
+                        { start: null, data: 'test2' }
+                    ]
+                }
+            };
+            mockContext.globalState.get.mockReturnValue(mockData);
+
+            const result = storageManager.getData();
+
+            expect(result?.roiTracking?.codeGenerationSessions[0].start).toBeInstanceOf(Date);
+            expect(result?.roiTracking?.codeGenerationSessions[1].start).toBeUndefined();
+        });
+
+        test('should handle missing analytics data during serialization', () => {
+            const mockData = {
+                totalClicks: 5,
+                timestamp: new Date('2024-01-01T00:00:00.000Z')
+            };
+            mockContext.globalState.get.mockReturnValue(mockData);
+
+            const result = storageManager.getData();
+
+            expect(result).toEqual({
+                totalClicks: 5,
+                timestamp: new Date('2024-01-01T00:00:00.000Z')
+            });
+        });
+
+        test('should handle missing ROI data during serialization', () => {
+            const mockData = {
+                totalClicks: 5,
+                analytics: {
+                    sessionStart: new Date('2024-01-01T00:00:00.000Z')
+                }
+            };
+            mockContext.globalState.get.mockReturnValue(mockData);
+
+            const result = storageManager.getData();
+
+            expect(result).toEqual({
+                totalClicks: 5,
+                analytics: {
+                    sessionStart: new Date('2024-01-01T00:00:00.000Z')
+                }
+            });
+        });
+
+        test('should handle storage usage with large data', () => {
+            const largeData = { data: 'x'.repeat(500000) }; // ~500KB
+            mockContext.globalState.get.mockReturnValue(largeData);
+
+            const result = storageManager.getStorageUsage();
+
+            expect(result.used).toBeGreaterThan(0);
+            expect(result.available).toBeLessThan(1024 * 1024);
+            expect(result.percentage).toBeGreaterThan(0);
+            expect(result.percentage).toBeLessThanOrEqual(100);
+        });
+
+        test('should handle storage usage error gracefully', () => {
+            mockContext.globalState.get.mockImplementation(() => {
+                throw new Error('Storage error');
+            });
+
+            const result = storageManager.getStorageUsage();
+
+            expect(result).toEqual({ used: 0, available: 100, percentage: 0 });
+        });
+
+        test('should cleanup old data and save changes', () => {
+            const oldDate = new Date();
+            oldDate.setDate(oldDate.getDate() - 31); // 31 days ago
+
+            const mockData = {
+                analytics: {
+                    sessions: [
+                        { timestamp: oldDate, data: 'old' },
+                        { timestamp: new Date(), data: 'new' }
+                    ]
+                },
+                roiTracking: {
+                    workflowSessions: [
+                        { timestamp: oldDate, data: 'old' },
+                        { timestamp: new Date(), data: 'new' }
+                    ]
+                }
+            };
+            mockContext.globalState.get.mockReturnValue(mockData);
+
+            storageManager.cleanupOldData(30);
+
+            expect(mockContext.globalState.update).toHaveBeenCalled();
+        });
+
+        test('should handle cleanup with no old data to remove', () => {
+            const mockData = {
+                analytics: {
+                    sessions: [
+                        { timestamp: new Date(), data: 'new' }
+                    ]
+                },
+                roiTracking: {
+                    workflowSessions: [
+                        { timestamp: new Date(), data: 'new' }
+                    ]
+                }
+            };
+            mockContext.globalState.get.mockReturnValue(mockData);
+
+            storageManager.cleanupOldData(30);
+
+            // Should not call update since no changes were made
+            expect(mockContext.globalState.update).not.toHaveBeenCalled();
+        });
+
+        test('should handle cleanup error gracefully', () => {
+            mockContext.globalState.get.mockImplementation(() => {
+                throw new Error('Storage error');
+            });
+
+            expect(() => storageManager.cleanupOldData(30)).not.toThrow();
+        });
+
+        test('should validate imported data with only analytics', () => {
+            const validData = {
+                analytics: {
+                    sessionStart: new Date(),
+                    sessions: []
+                }
+            };
+
+            const result = (storageManager as any).validateImportedData(validData);
+
+            expect(result).toBe(true);
+        });
+
+        test('should validate imported data with only ROI tracking', () => {
+            const validData = {
+                roiTracking: {
+                    workflowSessions: [],
+                    codeGenerationSessions: []
+                }
+            };
+
+            const result = (storageManager as any).validateImportedData(validData);
+
+            expect(result).toBe(true);
+        });
+
+        test('should validate imported data with only basic fields', () => {
+            const validData = {
+                totalClicks: 5,
+                isRunning: false
+            };
+
+            const result = (storageManager as any).validateImportedData(validData);
+
+            expect(result).toBe(true);
+        });
+
+        test('should reject imported data with no valid fields', () => {
+            const invalidData = {
+                someOtherField: 'value'
+            };
+
+            const result = (storageManager as any).validateImportedData(invalidData);
+
+            expect(result).toBe(false);
+        });
+
+        test('should reject imported data with null analytics', () => {
+            const invalidData = {
+                analytics: null
+            };
+
+            const result = (storageManager as any).validateImportedData(invalidData);
+
+            expect(result).toBe(false);
+        });
+
+        test('should reject imported data with null ROI tracking', () => {
+            const invalidData = {
+                roiTracking: null
+            };
+
+            const result = (storageManager as any).validateImportedData(invalidData);
+
+            expect(result).toBe(false);
+        });
     });
 });

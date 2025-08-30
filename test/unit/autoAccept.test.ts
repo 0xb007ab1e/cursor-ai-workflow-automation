@@ -1123,5 +1123,506 @@ describe('AutoAcceptManager', () => {
       expect(mockButtonDetector.findRecentDiffBlocks).toHaveBeenCalledWith(maxAge);
       expect(result).toEqual(mockRecentBlocks);
     });
+
+    it('should handle file info extraction with missing conversations div', () => {
+      // Mock document.querySelector to return null for conversations div
+      const originalQuerySelector = document.querySelector;
+      document.querySelector = jest.fn().mockReturnValue(null);
+
+      const result = autoAcceptManager['extractFileInfo']();
+      expect(result).toBeNull();
+
+      // Restore original
+      document.querySelector = originalQuerySelector;
+    });
+
+    it('should handle file info extraction with no message bubbles', () => {
+      // Mock conversations div with no message bubbles
+      const mockConversationsDiv = document.createElement('div');
+      mockConversationsDiv.className = 'conversations';
+      
+      const originalQuerySelector = document.querySelector;
+      document.querySelector = jest.fn().mockReturnValue(mockConversationsDiv);
+
+      const result = autoAcceptManager['extractFileInfo']();
+      expect(result).toBeNull();
+
+      // Restore original
+      document.querySelector = originalQuerySelector;
+    });
+
+    it('should handle file info extraction with empty message bubbles', () => {
+      // Mock conversations div with empty message bubbles
+      const mockConversationsDiv = document.createElement('div');
+      mockConversationsDiv.className = 'conversations';
+      
+      const mockBubble = document.createElement('div');
+      mockBubble.setAttribute('data-message-index', '1');
+      mockConversationsDiv.appendChild(mockBubble);
+      
+      const originalQuerySelector = document.querySelector;
+      document.querySelector = jest.fn().mockReturnValue(mockConversationsDiv);
+
+      const result = autoAcceptManager['extractFileInfo']();
+      expect(result).toBeNull();
+
+      // Restore original
+      document.querySelector = originalQuerySelector;
+    });
+
+    it('should handle file info extraction with no code blocks', () => {
+      // Mock conversations div with message bubbles but no code blocks
+      const mockConversationsDiv = document.createElement('div');
+      mockConversationsDiv.className = 'conversations';
+      
+      const mockBubble = document.createElement('div');
+      mockBubble.setAttribute('data-message-index', '1');
+      mockConversationsDiv.appendChild(mockBubble);
+      
+      const originalQuerySelector = document.querySelector;
+      document.querySelector = jest.fn().mockReturnValue(mockConversationsDiv);
+
+      const result = autoAcceptManager['extractFileInfo']();
+      expect(result).toBeNull();
+
+      // Restore original
+      document.querySelector = originalQuerySelector;
+    });
+
+    it('should handle file info extraction with debug mode enabled', () => {
+      // Enable debug mode
+      autoAcceptManager['debugMode'] = true;
+      
+      // Mock conversations div with message bubbles but no code blocks
+      const mockConversationsDiv = document.createElement('div');
+      mockConversationsDiv.className = 'conversations';
+      
+      const mockBubble = document.createElement('div');
+      mockBubble.setAttribute('data-message-index', '1');
+      mockConversationsDiv.appendChild(mockBubble);
+      
+      const originalQuerySelector = document.querySelector;
+      document.querySelector = jest.fn().mockReturnValue(mockConversationsDiv);
+
+      const result = autoAcceptManager['extractFileInfo']();
+      expect(result).toBeNull();
+
+      // Restore original
+      document.querySelector = originalQuerySelector;
+      
+      // Disable debug mode
+      autoAcceptManager['debugMode'] = false;
+    });
+
+    it('should handle file info extraction error gracefully', () => {
+      // Mock document.querySelector to throw an error
+      const originalQuerySelector = document.querySelector;
+      document.querySelector = jest.fn().mockImplementation(() => {
+        throw new Error('DOM error');
+      });
+
+      const result = autoAcceptManager['extractFileInfo']();
+      expect(result).toBeNull();
+
+      // Restore original
+      document.querySelector = originalQuerySelector;
+    });
+
+    it('should extract file info from block with filename span', () => {
+      const mockBlock = document.createElement('div');
+      const mockFilenameSpan = document.createElement('span');
+      mockFilenameSpan.textContent = 'test.js';
+      mockBlock.appendChild(mockFilenameSpan);
+      
+      // Mock querySelector to return the filename span
+      const originalQuerySelector = mockBlock.querySelector;
+      mockBlock.querySelector = jest.fn().mockReturnValue(mockFilenameSpan);
+
+      const result = autoAcceptManager['extractFileInfoFromBlock'](mockBlock);
+      expect(result).toBeDefined();
+      expect(result?.filename).toBe('test.js');
+
+      // Restore original
+      mockBlock.querySelector = originalQuerySelector;
+    });
+
+    it('should extract file info from block with pattern matching', () => {
+      const mockBlock = document.createElement('div');
+      const mockSpan = document.createElement('span');
+      mockSpan.textContent = 'test.js';
+      mockBlock.appendChild(mockSpan);
+      
+      // Mock querySelector to return null for filename span, but return spans for pattern matching
+      const originalQuerySelector = mockBlock.querySelector;
+      const originalQuerySelectorAll = mockBlock.querySelectorAll;
+      
+      mockBlock.querySelector = jest.fn().mockReturnValue(null);
+      mockBlock.querySelectorAll = jest.fn().mockReturnValue([mockSpan]);
+
+      const result = autoAcceptManager['extractFileInfoFromBlock'](mockBlock);
+      expect(result).toBeDefined();
+      expect(result?.filename).toBe('test.js');
+
+      // Restore original
+      mockBlock.querySelector = originalQuerySelector;
+      mockBlock.querySelectorAll = originalQuerySelectorAll;
+    });
+
+    it('should handle file info extraction with no filename found', () => {
+      const mockBlock = document.createElement('div');
+      
+      // Mock querySelector and querySelectorAll to return null/empty
+      const originalQuerySelector = mockBlock.querySelector;
+      const originalQuerySelectorAll = mockBlock.querySelectorAll;
+      
+      mockBlock.querySelector = jest.fn().mockReturnValue(null);
+      mockBlock.querySelectorAll = jest.fn().mockReturnValue([]);
+
+      const result = autoAcceptManager['extractFileInfoFromBlock'](mockBlock);
+      expect(result).toBeNull();
+
+      // Restore original
+      mockBlock.querySelector = originalQuerySelector;
+      mockBlock.querySelectorAll = originalQuerySelectorAll;
+    });
+
+    it('should handle file info extraction with debug mode enabled', () => {
+      // Enable debug mode
+      autoAcceptManager['debugMode'] = true;
+      
+      const mockBlock = document.createElement('div');
+      mockBlock.className = 'test-block';
+      
+      // Mock querySelector and querySelectorAll to return null/empty
+      const originalQuerySelector = mockBlock.querySelector;
+      const originalQuerySelectorAll = mockBlock.querySelectorAll;
+      
+      mockBlock.querySelector = jest.fn().mockReturnValue(null);
+      mockBlock.querySelectorAll = jest.fn().mockReturnValue([]);
+
+      const result = autoAcceptManager['extractFileInfoFromBlock'](mockBlock);
+      expect(result).toBeNull();
+
+      // Restore original
+      mockBlock.querySelector = originalQuerySelector;
+      mockBlock.querySelectorAll = originalQuerySelectorAll;
+      
+      // Disable debug mode
+      autoAcceptManager['debugMode'] = false;
+    });
+
+    it('should handle file info extraction error gracefully', () => {
+      const mockBlock = document.createElement('div');
+      
+      // Mock querySelector to throw an error
+      const originalQuerySelector = mockBlock.querySelector;
+      mockBlock.querySelector = jest.fn().mockImplementation(() => {
+        throw new Error('DOM error');
+      });
+
+      const result = autoAcceptManager['extractFileInfoFromBlock'](mockBlock);
+      expect(result).toBeNull();
+
+      // Restore original
+      mockBlock.querySelector = originalQuerySelector;
+    });
+
+    it('should extract file info with status elements and diff stats', () => {
+      const mockBlock = document.createElement('div');
+      const mockFilenameSpan = document.createElement('span');
+      mockFilenameSpan.textContent = 'test.js';
+      mockBlock.appendChild(mockFilenameSpan);
+      
+      const mockStatusSpan = document.createElement('span');
+      mockStatusSpan.textContent = '+5 -2';
+      mockBlock.appendChild(mockStatusSpan);
+      
+      // Mock querySelector to return the filename span
+      const originalQuerySelector = mockBlock.querySelector;
+      const originalQuerySelectorAll = mockBlock.querySelectorAll;
+      
+      mockBlock.querySelector = jest.fn().mockReturnValue(mockFilenameSpan);
+      mockBlock.querySelectorAll = jest.fn().mockReturnValue([mockStatusSpan]);
+
+      const result = autoAcceptManager['extractFileInfoFromBlock'](mockBlock);
+      expect(result).toBeDefined();
+      expect(result?.filename).toBe('test.js');
+      expect(result?.addedLines).toBe(5);
+      expect(result?.deletedLines).toBe(2);
+
+      // Restore original
+      mockBlock.querySelector = originalQuerySelector;
+      mockBlock.querySelectorAll = originalQuerySelectorAll;
+    });
+
+    it('should handle status elements with no diff stats', () => {
+      const mockBlock = document.createElement('div');
+      const mockFilenameSpan = document.createElement('span');
+      mockFilenameSpan.textContent = 'test.js';
+      mockBlock.appendChild(mockFilenameSpan);
+      
+      const mockStatusSpan = document.createElement('span');
+      mockStatusSpan.textContent = 'No changes';
+      mockBlock.appendChild(mockStatusSpan);
+      
+      // Mock querySelector to return the filename span
+      const originalQuerySelector = mockBlock.querySelector;
+      const originalQuerySelectorAll = mockBlock.querySelectorAll;
+      
+      mockBlock.querySelector = jest.fn().mockReturnValue(mockFilenameSpan);
+      mockBlock.querySelectorAll = jest.fn().mockReturnValue([mockStatusSpan]);
+
+      const result = autoAcceptManager['extractFileInfoFromBlock'](mockBlock);
+      expect(result).toBeDefined();
+      expect(result?.filename).toBe('test.js');
+      expect(result?.addedLines).toBe(0);
+      expect(result?.deletedLines).toBe(0);
+
+      // Restore original
+      mockBlock.querySelector = originalQuerySelector;
+      mockBlock.querySelectorAll = originalQuerySelectorAll;
+    });
+
+    it('should handle status elements with only added lines', () => {
+      const mockBlock = document.createElement('div');
+      const mockFilenameSpan = document.createElement('span');
+      mockFilenameSpan.textContent = 'test.js';
+      mockBlock.appendChild(mockFilenameSpan);
+      
+      const mockStatusSpan = document.createElement('span');
+      mockStatusSpan.textContent = '+10';
+      mockBlock.appendChild(mockStatusSpan);
+      
+      // Mock querySelector to return the filename span
+      const originalQuerySelector = mockBlock.querySelector;
+      const originalQuerySelectorAll = mockBlock.querySelectorAll;
+      
+      mockBlock.querySelector = jest.fn().mockReturnValue(mockFilenameSpan);
+      mockBlock.querySelectorAll = jest.fn().mockReturnValue([mockStatusSpan]);
+
+      const result = autoAcceptManager['extractFileInfoFromBlock'](mockBlock);
+      expect(result).toBeDefined();
+      expect(result?.filename).toBe('test.js');
+      expect(result?.addedLines).toBe(10);
+      expect(result?.deletedLines).toBe(0);
+
+      // Restore original
+      mockBlock.querySelector = originalQuerySelector;
+      mockBlock.querySelectorAll = originalQuerySelectorAll;
+    });
+
+    it('should handle status elements with only deleted lines', () => {
+      const mockBlock = document.createElement('div');
+      const mockFilenameSpan = document.createElement('span');
+      mockFilenameSpan.textContent = 'test.js';
+      mockBlock.appendChild(mockFilenameSpan);
+      
+      const mockStatusSpan = document.createElement('span');
+      mockStatusSpan.textContent = '-3';
+      mockBlock.appendChild(mockStatusSpan);
+      
+      // Mock querySelector to return the filename span
+      const originalQuerySelector = mockBlock.querySelector;
+      const originalQuerySelectorAll = mockBlock.querySelectorAll;
+      
+      mockBlock.querySelector = jest.fn().mockReturnValue(mockFilenameSpan);
+      mockBlock.querySelectorAll = jest.fn().mockReturnValue([mockStatusSpan]);
+
+      const result = autoAcceptManager['extractFileInfoFromBlock'](mockBlock);
+      expect(result).toBeDefined();
+      expect(result?.filename).toBe('test.js');
+      expect(result?.addedLines).toBe(0);
+      expect(result?.deletedLines).toBe(3);
+
+      // Restore original
+      mockBlock.querySelector = originalQuerySelector;
+      mockBlock.querySelectorAll = originalQuerySelectorAll;
+    });
+
+    it('should handle status elements with debug mode enabled', () => {
+      // Enable debug mode
+      autoAcceptManager['debugMode'] = true;
+      
+      const mockBlock = document.createElement('div');
+      const mockFilenameSpan = document.createElement('span');
+      mockFilenameSpan.textContent = 'test.js';
+      mockBlock.appendChild(mockFilenameSpan);
+      
+      const mockStatusSpan = document.createElement('span');
+      mockStatusSpan.textContent = '+5 -2';
+      mockBlock.appendChild(mockStatusSpan);
+      
+      // Mock querySelector to return the filename span
+      const originalQuerySelector = mockBlock.querySelector;
+      const originalQuerySelectorAll = mockBlock.querySelectorAll;
+      
+      mockBlock.querySelector = jest.fn().mockReturnValue(mockFilenameSpan);
+      mockBlock.querySelectorAll = jest.fn().mockReturnValue([mockStatusSpan]);
+
+      const result = autoAcceptManager['extractFileInfoFromBlock'](mockBlock);
+      expect(result).toBeDefined();
+      expect(result?.filename).toBe('test.js');
+
+      // Restore original
+      mockBlock.querySelector = originalQuerySelector;
+      mockBlock.querySelectorAll = originalQuerySelectorAll;
+      
+      // Disable debug mode
+      autoAcceptManager['debugMode'] = false;
+    });
+
+    it('should handle multiple status elements with different stats', () => {
+      const mockBlock = document.createElement('div');
+      const mockFilenameSpan = document.createElement('span');
+      mockFilenameSpan.textContent = 'test.js';
+      mockBlock.appendChild(mockFilenameSpan);
+      
+      const mockStatusSpan1 = document.createElement('span');
+      mockStatusSpan1.textContent = '+5';
+      mockBlock.appendChild(mockStatusSpan1);
+      
+      const mockStatusSpan2 = document.createElement('span');
+      mockStatusSpan2.textContent = '-2';
+      mockBlock.appendChild(mockStatusSpan2);
+      
+      // Mock querySelector to return the filename span
+      const originalQuerySelector = mockBlock.querySelector;
+      const originalQuerySelectorAll = mockBlock.querySelectorAll;
+      
+      mockBlock.querySelector = jest.fn().mockReturnValue(mockFilenameSpan);
+      mockBlock.querySelectorAll = jest.fn().mockReturnValue([mockStatusSpan1, mockStatusSpan2]);
+
+      const result = autoAcceptManager['extractFileInfoFromBlock'](mockBlock);
+      expect(result).toBeDefined();
+      expect(result?.filename).toBe('test.js');
+      expect(result?.addedLines).toBe(5);
+      expect(result?.deletedLines).toBe(2);
+
+      // Restore original
+      mockBlock.querySelector = originalQuerySelector;
+      mockBlock.querySelectorAll = originalQuerySelectorAll;
+    });
+
+    it('should handle button monitoring with no buttons found', () => {
+      // Mock button detector to return no buttons
+      mockButtonDetector.findAcceptButtons.mockReturnValue([]);
+      
+      // Mock extractFileInfo to return null
+      const originalExtractFileInfo = autoAcceptManager['extractFileInfo'];
+      autoAcceptManager['extractFileInfo'] = jest.fn().mockReturnValue(null);
+
+      // Call the monitoring function
+      autoAcceptManager['checkAndClick']();
+
+      expect(mockButtonDetector.findAcceptButtons).toHaveBeenCalled();
+      expect(mockAnalyticsManager.trackButtonClick).not.toHaveBeenCalled();
+
+      // Restore original
+      autoAcceptManager['extractFileInfo'] = originalExtractFileInfo;
+    });
+
+    it('should handle button monitoring with debug mode enabled', () => {
+      // Enable debug mode
+      autoAcceptManager['debugMode'] = true;
+      
+      // Mock button detector to return no buttons
+      mockButtonDetector.findAcceptButtons.mockReturnValue([]);
+      
+      // Mock extractFileInfo to return null
+      const originalExtractFileInfo = autoAcceptManager['extractFileInfo'];
+      autoAcceptManager['extractFileInfo'] = jest.fn().mockReturnValue(null);
+
+      // Call the monitoring function
+      autoAcceptManager['checkAndClick']();
+
+      expect(mockButtonDetector.findAcceptButtons).toHaveBeenCalled();
+
+      // Restore original
+      autoAcceptManager['extractFileInfo'] = originalExtractFileInfo;
+      
+      // Disable debug mode
+      autoAcceptManager['debugMode'] = false;
+    });
+
+    it('should handle button monitoring error gracefully', () => {
+      // Mock button detector to throw an error
+      mockButtonDetector.findAcceptButtons.mockImplementation(() => {
+        throw new Error('Button detection error');
+      });
+
+      // Call the monitoring function
+      autoAcceptManager['checkAndClick']();
+
+      expect(mockButtonDetector.findAcceptButtons).toHaveBeenCalled();
+      expect(mockAnalyticsManager.trackButtonClick).not.toHaveBeenCalled();
+    });
+
+    it('should handle button click with file info extraction error', () => {
+      // Mock button detector to return a button
+      const mockButton = document.createElement('button');
+      mockButtonDetector.findAcceptButtons.mockReturnValue([mockButton]);
+      
+      // Mock extractFileInfo to throw an error
+      const originalExtractFileInfo = autoAcceptManager['extractFileInfo'];
+      autoAcceptManager['extractFileInfo'] = jest.fn().mockImplementation(() => {
+        throw new Error('File info extraction error');
+      });
+
+      // Call the monitoring function
+      autoAcceptManager['checkAndClick']();
+
+      expect(mockButtonDetector.findAcceptButtons).toHaveBeenCalled();
+
+      // Restore original
+      autoAcceptManager['extractFileInfo'] = originalExtractFileInfo;
+    });
+
+    it('should handle button click with storage save error', () => {
+      // Mock button detector to return a button
+      const mockButton = document.createElement('button');
+      mockButtonDetector.findAcceptButtons.mockReturnValue([mockButton]);
+      
+      // Mock extractFileInfo to return file info
+      const mockFileInfo = { filename: 'test.js', addedLines: 5, deletedLines: 0, timestamp: new Date() };
+      const originalExtractFileInfo = autoAcceptManager['extractFileInfo'];
+      autoAcceptManager['extractFileInfo'] = jest.fn().mockReturnValue(mockFileInfo);
+      
+      // Mock storage save to throw an error
+      mockStorageManager.saveData.mockImplementation(() => {
+        throw new Error('Storage save error');
+      });
+
+      // Call the monitoring function
+      autoAcceptManager['checkAndClick']();
+
+      expect(mockButtonDetector.findAcceptButtons).toHaveBeenCalled();
+
+      // Restore original
+      autoAcceptManager['extractFileInfo'] = originalExtractFileInfo;
+    });
+
+    it('should handle button click with analytics error', () => {
+      // Mock button detector to return a button
+      const mockButton = document.createElement('button');
+      mockButtonDetector.findAcceptButtons.mockReturnValue([mockButton]);
+      
+      // Mock extractFileInfo to return file info
+      const mockFileInfo = { filename: 'test.js', addedLines: 5, deletedLines: 0, timestamp: new Date() };
+      const originalExtractFileInfo = autoAcceptManager['extractFileInfo'];
+      autoAcceptManager['extractFileInfo'] = jest.fn().mockReturnValue(mockFileInfo);
+      
+      // Mock analytics to throw an error
+      mockAnalyticsManager.trackButtonClick.mockImplementation(() => {
+        throw new Error('Analytics error');
+      });
+
+      // Call the monitoring function
+      autoAcceptManager['checkAndClick']();
+
+      expect(mockButtonDetector.findAcceptButtons).toHaveBeenCalled();
+
+      // Restore original
+      autoAcceptManager['extractFileInfo'] = originalExtractFileInfo;
+    });
   });
 });

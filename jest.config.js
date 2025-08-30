@@ -41,6 +41,9 @@ module.exports = {
   setupFilesAfterEnv: [
     '<rootDir>/test/setup.ts'
   ],
+  setupFiles: [
+    '<rootDir>/test/jest-setup.js'
+  ],
   testTimeout: 30000,
   verbose: true,
   clearMocks: true,
